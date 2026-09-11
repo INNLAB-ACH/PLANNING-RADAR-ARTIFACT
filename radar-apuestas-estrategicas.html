@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar de Apuestas Estratégicas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F3F2FA;
+    --card-bg:#FFFFFF;
+    --card-border:#ECEBF3;
+    --ink:#141B3C;
+    --ink-muted:#75758A;
+    --label-muted:#9A9AAE;
+    --accent:#6D5CE0;
+    --accent-soft:rgba(109,92,224,.08);
+    --ach-blue:#0066B2;
+    --ring-color:#DFDEEA;
+    --hover-bg:#F5F4FB;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Red Hat Display','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  .page{ max-width:2400px; margin:0 auto; width:100%; padding:36px clamp(20px,3.5vw,64px) 64px; }
+  header{ margin-bottom:22px; display:flex; align-items:center; gap:16px; }
+  .header-logo{ height:58px; width:auto; display:block; flex-shrink:0; }
+  .header-text{ display:flex; flex-direction:column; }
+  .eyebrow{ display:block; font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--label-muted); margin-bottom:0; }
+  h1{ font-size:36px; font-weight:800; letter-spacing:-0.02em; line-height:1.12; margin:0; color:var(--ach-blue); }
+
+  .data-bar{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:0 0 20px; padding:10px 16px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; }
+  .data-status{ font-size:13px; color:var(--ink-muted); }
+  .data-status.is-error{ color:#C0392B; }
+  .data-status.is-ok{ color:#1E8E5A; }
+  .data-upload-btn{ font-size:12.5px; font-weight:600; color:var(--accent); background:var(--accent-soft); border-radius:999px; padding:6px 14px; cursor:pointer; white-space:nowrap; }
+  .data-upload-btn:hover{ filter:brightness(0.97); }
+
+  .layout{ display:grid; grid-template-columns:minmax(0,2.7fr) minmax(220px,.8fr); gap:clamp(20px,2.8vw,44px); align-items:start; }
+  @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
+
+  .radar-card{
+    position:relative;
+    display:flex; flex-direction:column;
+    min-height:min(760px, calc(100vh - 190px));
+    background:
+      radial-gradient(circle at 50% 44%, rgba(109,92,224,.09), transparent 62%),
+      var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:26px;
+    padding:36px;
+    box-shadow:0 24px 64px rgba(20,16,60,.08), inset 0 0 0 14px #fff;
+  }
+  .radar-card::before{
+    content:'';
+    position:absolute; inset:14px;
+    border-radius:18px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28'><path d='M28 0H0V28' fill='none' stroke='%23D6D3EC' stroke-width='1' stroke-dasharray='1.6 4'/></svg>");
+    background-size:28px 28px;
+    pointer-events:none;
+    z-index:0;
+  }
+  .radar-canvas{ position:relative; z-index:1; flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; }
+  .radar-tooltip{
+    position:absolute; z-index:20; pointer-events:none;
+    background:#1B1B23; color:#fff; border-radius:10px;
+    padding:9px 12px; font-size:12.5px; line-height:1.45;
+    max-width:220px; box-shadow:0 12px 30px rgba(20,16,60,.28);
+    transform:translate(-4px,-4px);
+  }
+  .radar-tooltip.hidden{ display:none; }
+  .radar-tooltip.tooltip-wide{ max-width:320px; }
+  .radar-tooltip strong{ font-weight:600; }
+  .radar-tooltip .tooltip-olas, .radar-tooltip .tooltip-segmentos{ color:rgba(255,255,255,.65); }
+  svg{ width:100%; max-width:860px; height:auto; display:block; margin:0 auto; }
+  .radar-caption{
+    position:relative; z-index:1;
+    color:var(--ink-muted);
+    font-size:12px;
+    line-height:1.5;
+    margin:16px 4px 0;
+  }
+
+  .sidebar{ display:flex; flex-direction:column; gap:14px; position:sticky; top:22px; }
+  .panel{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:16px 18px;
+    box-shadow:none;
+  }
+  .panel h2{ font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; margin:0 0 12px; color:var(--ink-muted); }
+
+  .legend-item{
+    display:flex; align-items:center; gap:10px;
+    padding:8px 10px; border-radius:999px; cursor:pointer;
+    box-shadow:inset 0 0 0 1.5px transparent;
+    transition:background-color .15s ease, box-shadow .15s ease;
+  }
+  .legend-item:hover, .legend-item.is-active, .legend-item.is-pinned{
+    background:var(--accent-soft);
+    box-shadow:inset 0 0 0 1.5px var(--accent);
+  }
+  .legend-swatch{ width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .legend-name{ font-size:14px; color:var(--ink); }
+  .legend-count{ margin-left:auto; font-size:12px; color:var(--ink-muted); }
+
+  .segment-list{ display:flex; flex-wrap:wrap; gap:8px; }
+  .segment-chip{
+    display:inline-flex; align-items:center;
+    padding:7px 14px; border-radius:999px;
+    border:1px solid var(--card-border); background:#fff;
+    font-family:inherit; font-size:12.5px; font-weight:500; color:var(--ink);
+    cursor:pointer; transition:all .15s ease;
+  }
+  .segment-chip:hover, .segment-chip.is-hovered{ border-color:var(--accent); background:var(--accent-soft); }
+  .segment-chip.is-active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  .quad-overlay{ fill:var(--accent); opacity:0; transition:opacity .2s ease; pointer-events:none; }
+  .quad-overlay.is-active{ opacity:.06; }
+
+  .ring{ fill:none; stroke:var(--ring-color); stroke-width:1.4; pointer-events:none; transition:stroke .2s ease, stroke-width .2s ease, stroke-opacity .2s ease; }
+  .ring.ring-highlight{ stroke:var(--accent); stroke-width:2.2; }
+  .ring.ring-faded{ stroke-opacity:.35; }
+  .axis{ stroke:var(--ring-color); stroke-width:1.4; pointer-events:none; }
+  .quad-label{ font-family:'Red Hat Display',sans-serif; font-weight:700; font-size:14px; fill:var(--ink); cursor:pointer; transition:fill .15s ease; }
+  .quad-label.is-hovered{ fill:var(--accent); }
+  .quad-label-hit{ fill:#000; fill-opacity:.001; cursor:pointer; }
+  .wave-tick{ font-family:'Red Hat Display',sans-serif; font-size:11.5px; fill:var(--ink-muted); text-anchor:middle; pointer-events:none; }
+  .tick-mark{ stroke:var(--ring-color); stroke-width:1.4; pointer-events:none; }
+  .continuation{ stroke:var(--ring-color); stroke-width:1.4; stroke-dasharray:3 4; pointer-events:none; }
+  .wave-hit{ fill:none; stroke:#000; stroke-opacity:.001; cursor:pointer; }
+  .center-mark{ stroke:var(--ink-muted); stroke-width:1.2; fill:none; pointer-events:none; }
+
+  .point{ cursor:pointer; }
+  .point circle.core{ opacity:.9; transition:opacity .22s ease, r .18s ease; }
+  .point circle.halo{ opacity:0; fill:none; stroke-width:1.5; transition:opacity .2s ease; }
+  .point.selected circle.halo{ opacity:1; }
+  .point.highlight circle.core{ r:8.5px; filter:url(#glow); }
+  .point.dim circle.core{ opacity:.15; }
+  .point.filtered-out circle.core{ opacity:.05; }
+  .point.filtered-out{ pointer-events:none; }
+  .point:focus-visible circle.core{ stroke:var(--ink); stroke-width:2; }
+  .point:focus{ outline:none; }
+  .point.is-cluster circle.core{ stroke:#fff; stroke-width:1.2; }
+  .cluster-badge{ fill:#fff; stroke-width:1.3; transition:opacity .22s ease; }
+  .cluster-badge-text{ font-family:'Red Hat Display',sans-serif; font-size:8px; font-weight:700; fill:var(--ink); text-anchor:middle; pointer-events:none; transition:opacity .22s ease; }
+  .point.dim .cluster-badge, .point.dim .cluster-badge-text{ opacity:.15; }
+  .point.filtered-out .cluster-badge, .point.filtered-out .cluster-badge-text{ opacity:.05; }
+
+  .segment-picker{
+    position:absolute; z-index:30;
+    background:#fff; border:1px solid var(--card-border); border-radius:14px;
+    padding:14px 16px; min-width:210px;
+    box-shadow:0 18px 44px rgba(20,16,60,.22);
+  }
+  .segment-picker.hidden{ display:none; }
+  .segment-picker-title{ font-size:13px; font-weight:700; color:var(--ink); margin-bottom:10px; line-height:1.35; }
+  .segment-picker-list{ display:flex; flex-direction:column; gap:6px; }
+  .segment-picker-item{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:8px 12px; border-radius:10px; border:1px solid var(--card-border);
+    background:var(--hover-bg); cursor:pointer; font-size:13px; color:var(--ink);
+    font-family:inherit; text-align:left;
+  }
+  .segment-picker-item:hover{ border-color:var(--accent); background:var(--accent-soft); }
+  .segment-picker-item span.arrow{ color:var(--ink-muted); font-size:11px; flex-shrink:0; }
+
+  /* ---- ficha detalle (modal) ---- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,16,40,.42);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; z-index:50;
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal-card{
+    background:var(--card-bg); border-radius:20px;
+    width:100%; max-width:640px; max-height:86vh; overflow-y:auto;
+    padding:30px 32px 34px; position:relative;
+    box-shadow:0 30px 70px rgba(20,16,60,.22);
+  }
+  .modal-close{
+    position:absolute; top:16px; right:18px;
+    background:var(--hover-bg); border:none; border-radius:50%;
+    width:30px; height:30px; font-size:18px; line-height:1;
+    color:var(--ink-muted); cursor:pointer;
+  }
+  .modal-close:hover{ color:var(--ink); }
+  .modal-product{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; margin-bottom:8px; }
+  .modal-header h2{ font-size:21px; font-weight:700; margin:0 0 10px; line-height:1.3; padding-right:24px; }
+  .modal-meta{ display:flex; gap:20px; font-size:12.5px; color:var(--ink-muted); margin-bottom:4px; }
+  .modal-meta strong{ color:var(--ink); font-weight:600; }
+
+  .ficha-row{ padding:16px 0; }
+  .ficha-row:first-of-type{ padding-top:18px; }
+  .ficha-row h3{ font-size:12px; font-weight:600; letter-spacing:.02em; color:var(--accent); margin:0 0 8px; }
+  .ficha-row p{ font-size:14.5px; line-height:1.6; margin:0; color:var(--ink); }
+  .ficha-split{ display:grid; grid-template-columns:120px 1fr; gap:16px; align-items:start; }
+  .ficha-label{ font-size:12px; font-weight:600; letter-spacing:.02em; color:var(--accent); padding-top:2px; }
+
+  .jobs-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .job-chip{ background:var(--accent-soft); border-radius:14px; padding:6px 12px; font-size:13px; color:var(--accent); font-weight:500; }
+
+  .quehay-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(88px,1fr)); gap:8px; }
+  .quehay-cell{ background:var(--hover-bg); border-radius:10px; padding:9px 11px; }
+  .quehay-fecha{ font-size:11px; color:var(--ink-muted); margin-bottom:3px; }
+  .quehay-estado{ font-size:13px; color:var(--ink); font-weight:500; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <img class="header-logo" src="ACH Logo.svg" alt="ACH Colombia">
+    <div class="header-text">
+      <span class="eyebrow">Planeación estratégica Sep 2026</span>
+      <h1>Radar de Apuestas Estratégicas</h1>
+    </div>
+  </header>
+
+  <div class="data-bar" id="dataBar">
+    <span id="dataStatus" class="data-status">Cargando datos del Excel…</span>
+    <label class="data-upload-btn" for="xlsxInput">Cargar / actualizar Excel</label>
+    <input type="file" id="xlsxInput" accept=".xlsx" hidden>
+  </div>
+
+  <div class="layout">
+    <div class="radar-card">
+      <div class="radar-canvas">
+        <svg id="radar" viewBox="-30 -30 880 880" role="img" aria-label="Radar de apuestas estratégicas con casos de uso por producto"></svg>
+      </div>
+      <div id="tooltip" class="radar-tooltip hidden"></div>
+      <div id="segmentPicker" class="segment-picker hidden">
+        <div class="segment-picker-title" id="pickerTitle"></div>
+        <div class="segment-picker-list" id="pickerList"></div>
+      </div>
+      <p class="radar-caption">Cuadrantes AE1–AE4 = apuestas estratégicas. Anillos 0–6 (desde el centro hacia afuera) = olas, siendo 0 lo vigente/base y 6 el horizonte más lejano. El cuadrante AE de cada caso se asignó automáticamente por palabras clave y debe revisarse. Haz clic en un caso para ver su ficha completa.</p>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <h2>Productos</h2>
+        <div id="legendList"></div>
+      </div>
+      <div class="panel">
+        <h2>Segmentos</h2>
+        <div id="segmentList" class="segment-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ficha detalle -->
+<div id="modalOverlay" class="modal-overlay hidden">
+  <div class="modal-card">
+    <button class="modal-close" id="modalCloseBtn" aria-label="Cerrar ficha">×</button>
+    <div class="modal-header">
+      <div class="modal-product"><span id="modalSwatch" style="width:10px;height:10px;border-radius:50%;display:inline-block;"></span><span id="modalProductName"></span></div>
+      <h2 id="modalTitle"></h2>
+      <div class="modal-meta" id="modalMeta"></div>
+    </div>
+    <div class="modal-body">
+      <section class="ficha-row" id="modalDescripcionRow">
+        <h3>Descripción</h3>
+        <p id="modalDescripcion"></p>
+      </section>
+      <section class="ficha-row" id="modalJobsRow">
+        <h3>Jobs to be done</h3>
+        <div id="modalJobs" class="jobs-row"></div>
+      </section>
+      <section class="ficha-row ficha-split">
+        <div class="ficha-label">Segmento</div>
+        <p id="modalSegmento"></p>
+      </section>
+      <section class="ficha-row" id="modalMercadoRow">
+        <h3>Potencial de mercado</h3>
+        <p id="modalMercado"></p>
+      </section>
+      <section class="ficha-row" id="modalCompetenciaRow">
+        <h3>Competencia relevante</h3>
+        <p id="modalCompetencia"></p>
+      </section>
+      <section class="ficha-row" id="modalFuentesRow">
+        <h3>Fuentes consultadas</h3>
+        <p id="modalFuentes"></p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+  const NS = 'http://www.w3.org/2000/svg';
+  const CENTER = { x: 410, y: 410 };
+  const OUTER = 410;
+
+  let PRODUCTOS = {};
+
+  const QUADRANTES = {
+    "AE1": {
+      "label": "AE1",
+      "nombre": "Inteligencia Financiera",
+      "signX": -1,
+      "signY": -1,
+      "apuestaCompleta": "Vamos a jugar en Inteligencia Financiera, convirtiendo los datos en un valor agregado, para esto vamos a dejar de vender solo servicios de data cruda."
+    },
+    "AE2": {
+      "label": "AE2",
+      "nombre": "Plataforma de Soluciones Operativas",
+      "signX": 1,
+      "signY": -1,
+      "apuestaCompleta": "Vamos a ser una Plataforma de Soluciones Operativas, para empresas y comercios. Conciliación y liquidación, gestión de cobranza, dispersión, Analítica, reportería, prevención de fraude. Renunciando a los productos que no generan valor."
+    },
+    "AE3": {
+      "label": "AE3",
+      "nombre": "Plataforma neutral de Open Finance",
+      "signX": -1,
+      "signY": 1,
+      "apuestaCompleta": "Vamos a ser la plataforma neutral de Open Finance de Colombia para iniciación de pagos y agregación de información con casos de uso monetizables para nuestros clientes y usuarios, renunciando a pilotos sin entidades ancla."
+    },
+    "AE4": {
+      "label": "AE4",
+      "nombre": "Prevención de fraude y cumplimiento",
+      "signX": 1,
+      "signY": 1,
+      "apuestaCompleta": "Vamos a crear soluciones alrededor de la prevención de fraude, cumplimiento, lavado de activos y ciberseguridad en general (transaccional, originación) como servicios de: Scoring de fraude, prevención de fraude, verificación de identidad, onboarding, insights de comportamiento de fraude y reporte de alertamiento de transacciones inusuales."
+    }
+  };
+
+  let BANDS = [];
+  let CASOS = [];
+  let CASO_BY_ID = {};
+  let MEMBER_PARENT = {};
+
+  // ---- Definición fija de productos = hojas del Excel (esto sí es código, no dato) ----
+  const PRODUCTOS_META = {
+    soi:            { sheet: 'SOI',                name: 'SOI',                        color: '#14B8A6' },
+    pse:            { sheet: 'PSE',                name: 'PSE',                        color: '#EC4899' },
+    info:           { sheet: 'Soluciones Info',    name: 'Soluciones de Información',  color: '#3B82F6' },
+    transversales:  { sheet: 'Transversales',      name: 'Capacidades Transversales',  color: '#9CA3AF' },
+    transferencias: { sheet: 'Transferencias',     name: 'Transferencias',             color: '#FB8A3C' },
+    nuevas:         { sheet: 'Nuevas Soluciones',  name: 'Nuevas Soluciones',          color: '#8B5CF6' },
+    fraude:         { sheet: 'Seguridad y Fraude', name: 'Seguridad y Fraude',         color: '#EF4444' },
+  };
+
+  // ---- Utilidades de texto (idénticas a las usadas para el primer volcado del Excel) ----
+  function stripAccents(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function normTxt(s){ return stripAccents(String(s || '').toLowerCase()); }
+  function clean(v){ return (v === null || v === undefined) ? '' : String(v).trim(); }
+
+  const AE4_KW = ['fraude','antifraude','lavado de activos','lavado de dinero','onboarding','identidad',
+    'ciberseguridad','scoring','cumplimiento','riesgoso','ventana de contencion','hold',
+    'lista restrictiva','falsos positivos'];
+  const AE3_KW = ['open finance','finanzas abiertas','agregacion','agregador','consentimiento',
+    'hub de open','proveedor de datos','receptor de datos','iniciacion del pago','iniciacion de pago',
+    'bre-b','breb','interoperable','codigo qr','rtp'];
+  const AE1_KW = ['analitica','inteligencia financiera','insight','ia predictiva','gestor financiero',
+    'snowflake','segmentacion','microsegmentacion','recomendador','modelo de ia','datos transaccionales',
+    'ia agentica','agentico'];
+
+  function classifyAE(texto){
+    const t = normTxt(texto);
+    for (const kw of AE4_KW) if (t.includes(kw)) return 'AE4';
+    for (const kw of AE1_KW) if (t.includes(kw)) return 'AE1';
+    for (const kw of AE3_KW) if (t.includes(kw)) return 'AE3';
+    return 'AE2';
+  }
+
+  const SEG_MAP = {
+    entidades: 'Entidades', entidad: 'Entidades',
+    empresas: 'Empresas', empresa: 'Empresas',
+    personas: 'Personas', persona: 'Personas',
+    gobierno: 'Gobierno',
+    ach: 'ACH (interno)',
+  };
+  function normSegmentos(raw){
+    if (!raw) return [];
+    const parts = String(raw).split(/[,\/;]| y /);
+    const out = [];
+    parts.forEach(p => {
+      p = p.trim().toLowerCase();
+      if (!p) return;
+      const mapped = SEG_MAP[p];
+      if (mapped && !out.includes(mapped)) out.push(mapped);
+    });
+    if (out.length) return out;
+    const fallback = String(raw).trim();
+    return fallback ? [fallback] : [];
+  }
+
+  function splitJobs(raw){
+    if (!raw) return [];
+    raw = String(raw).trim();
+    let parts;
+    if (raw.indexOf('\u2022') !== -1) parts = raw.split('\u2022');
+    else if (raw.indexOf('\n') !== -1) parts = raw.split('\n');
+    else parts = [raw];
+    return parts
+      .map(p => p.trim().replace(/^[\s-]+/, '').replace(/[\s-]+$/, ''))
+      .filter(p => p);
+  }
+
+  function splitTitleDesc(raw, sep){
+    raw = clean(raw);
+    const idx = raw.indexOf(sep);
+    if (idx !== -1) return [raw.slice(0, idx).trim(), raw.slice(idx + sep.length).trim()];
+    return [raw, ''];
+  }
+
+  function toIntOla(v){
+    if (typeof v === 'number' && isFinite(v)) return Math.trunc(v);
+    return 0;
+  }
+
+  function findSheet(wb, name){
+    if (wb.Sheets[name]) return wb.Sheets[name];
+    const target = name.trim().toLowerCase();
+    const found = wb.SheetNames.find(n => n.trim().toLowerCase() === target);
+    return found ? wb.Sheets[found] : null;
+  }
+
+  // ---- Construye PRODUCTOS / BANDS / CASOS a partir del libro de Excel cargado ----
+  function buildCasosFromWorkbook(wb){
+    const casos = [];
+    const missingSheets = [];
+    let counter = 0;
+
+    function addCaso(producto, ola, titulo, descripcion, jobsRaw, segRaw, mercado, competencia, fuentes){
+      titulo = clean(titulo);
+      if (!titulo) return;
+      counter++;
+      const id = 'c' + String(counter).padStart(3, '0');
+      const quadrante = classifyAE([titulo, descripcion, jobsRaw || ''].join(' '));
+      casos.push({
+        id, producto, quadrante, ola,
+        titulo, descripcion: clean(descripcion),
+        jobs: splitJobs(jobsRaw),
+        segmentos: normSegmentos(segRaw),
+        mercado: clean(mercado),
+        competencia: clean(competencia),
+        fuentes: clean(fuentes || ''),
+      });
+    }
+
+    function getRows(sheetName){
+      const ws = findSheet(wb, sheetName);
+      if (!ws){ missingSheets.push(sheetName); return null; }
+      return XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+    }
+
+    let rows;
+
+    rows = getRows('SOI');
+    if (rows) rows.slice(1).forEach(row => {
+      if (clean(row[1]) === '') return;
+      addCaso('soi', toIntOla(row[0]), row[1], '', row[2], row[3], row[4], row[5]);
+    });
+
+    rows = getRows('PSE');
+    if (rows) rows.slice(1).forEach(row => {
+      if (clean(row[1]) === '') return;
+      const [titulo, desc] = splitTitleDesc(row[1], ':');
+      addCaso('pse', 0, titulo, desc, row[2], row[3], row[4], row[5]);
+    });
+
+    rows = getRows('Soluciones Info');
+    if (rows) rows.slice(1).forEach(row => {
+      if (clean(row[1]) === '') return;
+      const m = String(row[0] || '0').match(/\d+/);
+      const ola = m ? parseInt(m[0], 10) : 0;
+      addCaso('info', ola, row[1], '', row[2], row[3], row[4], row[5]);
+    });
+
+    rows = getRows('Transversales');
+    if (rows) rows.slice(1).forEach(row => {
+      if (clean(row[1]) === '') return;
+      addCaso('transversales', toIntOla(row[0]), row[1], '', row[2], row[3], row[4], row[5]);
+    });
+
+    rows = getRows('Transferencias');
+    if (rows) rows.slice(1).forEach(row => {
+      if (clean(row[1]) === '') return;
+      addCaso('transferencias', toIntOla(row[0]), row[1], '', row[2], row[3], row[4], row[5]);
+    });
+
+    rows = getRows('Nuevas Soluciones');
+    if (rows) rows.slice(1).forEach(row => {
+      if (clean(row[1]) === '') return;
+      addCaso('nuevas', toIntOla(row[0]), row[1], row[2], row[3], row[4], row[5], row[7], row[6]);
+    });
+
+    rows = getRows('Seguridad y Fraude');
+    if (rows) rows.slice(1).forEach(row => {
+      if (clean(row[1]) === '') return;
+      const [titulo, desc] = splitTitleDesc(row[1], '|');
+      addCaso('fraude', toIntOla(row[0]), titulo, desc, row[2], row[3], row[4], row[5]);
+    });
+
+    if (!casos.length){
+      throw new Error('No se encontraron casos de uso en el libro (revisa los nombres de las hojas).');
+    }
+
+    // ---- agrupar en un solo punto los casos con el mismo producto+título que
+    // solo cambian de segmento (el mismo caso ofrecido a Entidades/Empresas/
+    // Personas/Gobierno). Si el título se repite pero TODAS las filas comparten
+    // exactamente el mismo segmento, no es este patrón (son variantes de job-to-
+    // be-done del mismo caso) y se dejan como puntos independientes. ----
+    const dupGroups = {};
+    casos.forEach(c => {
+      const key = c.producto + '|' + c.titulo.trim().toLowerCase();
+      (dupGroups[key] = dupGroups[key] || []).push(c);
+    });
+    const plottable = [];
+    let clusterCounter = 0;
+    Object.keys(dupGroups).forEach(key => {
+      const items = dupGroups[key];
+      if (items.length < 2) { plottable.push(items[0]); return; }
+      const segKeys = new Set(items.map(c => c.segmentos.slice().sort().join('|')));
+      if (segKeys.size < 2) { items.forEach(c => plottable.push(c)); return; }
+      clusterCounter++;
+      const rep = items[0];
+      const allSegs = [];
+      items.forEach(c => c.segmentos.forEach(s => { if (!allSegs.includes(s)) allSegs.push(s); }));
+      plottable.push({
+        id: 'g' + String(clusterCounter).padStart(3, '0'),
+        isCluster: true,
+        producto: rep.producto,
+        quadrante: rep.quadrante,
+        ola: rep.ola,
+        titulo: rep.titulo,
+        segmentos: allSegs,
+        members: items,
+      });
+    });
+
+    // anillos: ancho proporcional a sqrt(cantidad de puntos) por ola, con un hueco
+    // central (MIN_R) para que la ola 0 no colapse todos sus puntos en el centro
+    const OUTER_R = 410, MIN_R = 28;
+    const maxOla = plottable.reduce((m, c) => Math.max(m, c.ola), 0);
+    const olaCounts = new Array(maxOla + 1).fill(0);
+    plottable.forEach(c => { olaCounts[c.ola]++; });
+    const weights = olaCounts.map(n => Math.sqrt(n) || 1);
+    const wsum = weights.reduce((a, b) => a + b, 0);
+    const bands = [MIN_R];
+    let acc = MIN_R;
+    weights.forEach(w => { acc += (OUTER_R - MIN_R) * w / wsum; bands.push(acc); });
+    bands[bands.length - 1] = OUTER_R;
+
+    // distribución tipo espiral de girasol dentro de cada (cuadrante, ola) para
+    // minimizar solapamientos, sobre todo en las olas más pobladas
+    const buckets = {};
+    plottable.forEach(c => {
+      const key = c.quadrante + '|' + c.ola;
+      (buckets[key] = buckets[key] || []).push(c);
+    });
+    const ANGLE_MIN = 6, ANGLE_MAX = 84, RFRAC_MIN = 0.12, RFRAC_MAX = 0.94;
+    const GOLDEN_ANGLE = 137.50776405003785;
+    Object.keys(buckets).forEach(key => {
+      const items = buckets[key];
+      const n = items.length;
+      const span = ANGLE_MAX - ANGLE_MIN;
+      items.forEach((c, i) => {
+        c.radio = RFRAC_MIN + (RFRAC_MAX - RFRAC_MIN) * Math.sqrt((i + 0.5) / n);
+        c.angulo = ANGLE_MIN + ((i * GOLDEN_ANGLE) % span);
+      });
+    });
+
+    const productos = {};
+    Object.keys(PRODUCTOS_META).forEach(key => {
+      const meta = PRODUCTOS_META[key];
+      const segs = [];
+      let rowCount = 0;
+      plottable.filter(c => c.producto === key).forEach(c => {
+        rowCount += c.isCluster ? c.members.length : 1;
+        c.segmentos.forEach(s => { if (!segs.includes(s)) segs.push(s); });
+      });
+      productos[key] = { name: meta.name, color: meta.color, segmentos: segs, rowCount };
+    });
+
+    return { productos, bands, casos: plottable, missingSheets };
+  }
+
+  // -------------------------------------------------------------------------
+
+  function polarPoint(quad, ola, anguloDeg, radioFrac){
+    const inner = BANDS[ola];
+    const outer = BANDS[ola + 1];
+    const r = inner + radioFrac * (outer - inner);
+    const rad = anguloDeg * Math.PI / 180;
+    const q = QUADRANTES[quad];
+    return {
+      x: CENTER.x + q.signX * r * Math.cos(rad),
+      y: CENTER.y + q.signY * r * Math.sin(rad),
+    };
+  }
+
+  let selectedId = null;
+  let activeSegments = new Set();
+  let pinnedProducts = new Set();
+
+  const tooltipEl = document.getElementById('tooltip');
+  const radarCardEl = document.querySelector('.radar-card');
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+  function showTooltip(evt, caso){
+    const prod = PRODUCTOS[caso.producto];
+    const segLine = caso.isCluster
+      ? 'Agrupa ' + caso.members.length + ' segmentos: ' + escapeHtml(caso.segmentos.join(', ')) + ' — clic para elegir'
+      : 'Segmento: ' + escapeHtml(caso.segmentos.join(', ') || '—');
+    tooltipEl.innerHTML = '<strong>' + escapeHtml(prod.name) + '</strong><br>' + escapeHtml(caso.titulo) +
+      '<br><span class="tooltip-olas">Ola ' + caso.ola + ' · ' + escapeHtml(QUADRANTES[caso.quadrante].label) + '</span>' +
+      '<br><span class="tooltip-segmentos">' + segLine + '</span>';
+    tooltipEl.classList.toggle('tooltip-wide', !!caso.isCluster);
+    tooltipEl.classList.remove('hidden');
+    moveTooltip(evt);
+  }
+  function showApuestaTooltip(evt, quadId){
+    const quad = QUADRANTES[quadId];
+    tooltipEl.innerHTML = '<strong>' + quad.label + ' · ' + quad.nombre + '</strong><br>' + quad.apuestaCompleta;
+    tooltipEl.classList.add('tooltip-wide');
+    tooltipEl.classList.remove('hidden');
+    moveTooltip(evt);
+  }
+  function wrapQuadLabel(textEl, x, text, maxLineLen){
+    const words = text.split(' ');
+    const lines = [];
+    let current = '';
+    words.forEach(word => {
+      const test = current ? current + ' ' + word : word;
+      if (test.length > maxLineLen && current) { lines.push(current); current = word; }
+      else current = test;
+    });
+    if (current) lines.push(current);
+    lines.forEach((line, i) => {
+      const tspan = document.createElementNS(NS, 'tspan');
+      tspan.setAttribute('x', x);
+      tspan.setAttribute('dy', i === 0 ? 0 : 17);
+      tspan.textContent = line;
+      textEl.appendChild(tspan);
+    });
+  }
+  function moveTooltip(evt){
+    const rect = radarCardEl.getBoundingClientRect();
+    tooltipEl.style.left = (evt.clientX - rect.left + 14) + 'px';
+    tooltipEl.style.top = (evt.clientY - rect.top + 14) + 'px';
+  }
+  function hideTooltip(){
+    tooltipEl.classList.add('hidden');
+  }
+
+  const segmentPickerEl = document.getElementById('segmentPicker');
+  function showSegmentPicker(evt, cluster){
+    document.getElementById('pickerTitle').textContent = cluster.titulo;
+    const list = document.getElementById('pickerList');
+    list.innerHTML = '';
+    cluster.members.forEach(m => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'segment-picker-item';
+      btn.innerHTML = '<span>' + escapeHtml(m.segmentos.join(', ') || 'Sin segmento') + '</span><span class="arrow">Ver ficha →</span>';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideSegmentPicker();
+        selectCaso(m.id);
+      });
+      list.appendChild(btn);
+    });
+    hideTooltip();
+    const rect = radarCardEl.getBoundingClientRect();
+    segmentPickerEl.style.left = (evt.clientX - rect.left + 14) + 'px';
+    segmentPickerEl.style.top = (evt.clientY - rect.top + 14) + 'px';
+    segmentPickerEl.classList.remove('hidden');
+  }
+  function hideSegmentPicker(){
+    segmentPickerEl.classList.add('hidden');
+  }
+
+  function buildSVG(){
+    const svg = document.getElementById('radar');
+    svg.innerHTML = '';
+
+    const defs = document.createElementNS(NS, 'defs');
+    defs.innerHTML = '<filter id="glow" x="-60%" y="-60%" width="220%" height="220%">' +
+      '<feGaussianBlur stdDeviation="3" result="blur"/>' +
+      '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+    svg.appendChild(defs);
+
+    // 1) tinte de cuadrante (visual, se activa con hover en la etiqueta AEX)
+    [
+      { q: 'AE1', x: 0,        y: 0        },
+      { q: 'AE2', x: CENTER.x, y: 0        },
+      { q: 'AE3', x: 0,        y: CENTER.y },
+      { q: 'AE4', x: CENTER.x, y: CENTER.y },
+    ].forEach(z => {
+      const rect = document.createElementNS(NS, 'rect');
+      rect.setAttribute('x', z.x); rect.setAttribute('y', z.y);
+      rect.setAttribute('width', OUTER); rect.setAttribute('height', OUTER);
+      rect.setAttribute('class', 'quad-overlay');
+      rect.dataset.q = z.q;
+      svg.appendChild(rect);
+    });
+
+    // 2) olas (anillos)
+    BANDS.slice(1).forEach((r, i) => {
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', CENTER.x); c.setAttribute('cy', CENTER.y); c.setAttribute('r', r);
+      c.setAttribute('class', 'ring');
+      c.dataset.ola = i;
+      svg.appendChild(c);
+    });
+
+    // 3) zonas invisibles sobre cada anillo (hover ola)
+    BANDS.slice(1).forEach((r, i) => {
+      const hit = document.createElementNS(NS, 'circle');
+      hit.setAttribute('cx', CENTER.x); hit.setAttribute('cy', CENTER.y); hit.setAttribute('r', r);
+      hit.setAttribute('stroke-width', 16);
+      hit.setAttribute('class', 'wave-hit');
+      const olaIndex = i;
+      hit.addEventListener('mouseenter', () => hoverWave(olaIndex));
+      hit.addEventListener('mouseleave', () => hoverWave(null));
+      svg.appendChild(hit);
+    });
+
+    // 4) ejes
+    [
+      [CENTER.x - 340, CENTER.y, CENTER.x + 340, CENTER.y],
+      [CENTER.x, CENTER.y - 340, CENTER.x, CENTER.y + 340],
+    ].forEach(coords => {
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', coords[0]); line.setAttribute('y1', coords[1]);
+      line.setAttribute('x2', coords[2]); line.setAttribute('y2', coords[3]);
+      line.setAttribute('class', 'axis');
+      svg.appendChild(line);
+    });
+
+    // 4b) marca central tipo brújula (decorativo)
+    const centerRect = document.createElementNS(NS, 'rect');
+    centerRect.setAttribute('x', CENTER.x - 7); centerRect.setAttribute('y', CENTER.y - 7);
+    centerRect.setAttribute('width', 14); centerRect.setAttribute('height', 14);
+    centerRect.setAttribute('class', 'center-mark');
+    centerRect.setAttribute('transform', 'rotate(45 ' + CENTER.x + ' ' + CENTER.y + ')');
+    svg.appendChild(centerRect);
+    const centerDot = document.createElementNS(NS, 'circle');
+    centerDot.setAttribute('cx', CENTER.x); centerDot.setAttribute('cy', CENTER.y); centerDot.setAttribute('r', 2.2);
+    centerDot.setAttribute('fill', 'var(--ink-muted)');
+    svg.appendChild(centerDot);
+
+    // 5) etiquetas de cuadrante — único disparador del hover de AE
+    // Se posicionan fuera del anillo exterior: primero se dibuja el texto, se mide
+    // su caja real (getBBox) y se empuja en Y lo necesario para despejar la curva
+    // del círculo en el punto más cercano al centro del texto (su borde interior).
+    // Así funciona sin importar cuánto cambie el largo del nombre del cuadrante.
+    const QUAD_LABEL_MARGIN = 14;
+    [
+      { q: 'AE1', x: 90, y: 58, anchor: 'start', side: 'top' },
+      { q: 'AE2', x: 730, y: 58, anchor: 'end', side: 'top' },
+      { q: 'AE3', x: 90, y: 762, anchor: 'start', side: 'bottom' },
+      { q: 'AE4', x: 730, y: 762, anchor: 'end', side: 'bottom' },
+    ].forEach(l => {
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', l.x); t.setAttribute('y', l.y);
+      t.setAttribute('text-anchor', l.anchor);
+      t.setAttribute('class', 'quad-label');
+      t.dataset.q = l.q;
+      wrapQuadLabel(t, l.x, QUADRANTES[l.q].nombre, 20);
+      svg.appendChild(t);
+
+      let finalY = l.y;
+      const bbox = t.getBBox();
+      const innerX = l.anchor === 'end' ? bbox.x : bbox.x + bbox.width;
+      const dxInner = Math.abs(innerX - CENTER.x);
+      if (dxInner < OUTER) {
+        const halfSpan = Math.sqrt(OUTER * OUTER - dxInner * dxInner);
+        if (l.side === 'top') {
+          const ringEdgeY = CENTER.y - halfSpan;
+          const overlap = (bbox.y + bbox.height) - (ringEdgeY - QUAD_LABEL_MARGIN);
+          if (overlap > 0) finalY = l.y - overlap;
+        } else {
+          const ringEdgeY = CENTER.y + halfSpan;
+          const overlap = (ringEdgeY + QUAD_LABEL_MARGIN) - bbox.y;
+          if (overlap > 0) finalY = l.y + overlap;
+        }
+        t.setAttribute('y', finalY);
+      }
+
+      const hitX = l.anchor === 'end' ? l.x - 184 : l.x - 16;
+      const hitRect = document.createElementNS(NS, 'rect');
+      hitRect.setAttribute('x', hitX); hitRect.setAttribute('y', finalY - 28);
+      hitRect.setAttribute('width', 200); hitRect.setAttribute('height', 74);
+      hitRect.setAttribute('class', 'quad-label-hit');
+      hitRect.addEventListener('mouseenter', (e) => { hoverQuadrant(l.q); showApuestaTooltip(e, l.q); });
+      hitRect.addEventListener('mousemove', (e) => moveTooltip(e));
+      hitRect.addEventListener('mouseleave', () => { hoverQuadrant(null); hideTooltip(); });
+      svg.appendChild(hitRect);
+
+      t.addEventListener('mouseenter', (e) => { hoverQuadrant(l.q); showApuestaTooltip(e, l.q); });
+      t.addEventListener('mousemove', (e) => moveTooltip(e));
+      t.addEventListener('mouseleave', () => { hoverQuadrant(null); hideTooltip(); });
+    });
+
+    // 6) marcas numeradas de olas (0 = vigente/base, 6 = horizonte más lejano)
+    BANDS.slice(1).forEach((r, i) => {
+      const x = CENTER.x + r;
+      const tick = document.createElementNS(NS, 'line');
+      tick.setAttribute('x1', x); tick.setAttribute('y1', CENTER.y - 4);
+      tick.setAttribute('x2', x); tick.setAttribute('y2', CENTER.y + 4);
+      tick.setAttribute('class', 'tick-mark');
+      svg.appendChild(tick);
+
+      const label = document.createElementNS(NS, 'text');
+      label.setAttribute('x', x); label.setAttribute('y', CENTER.y + 22);
+      label.setAttribute('class', 'wave-tick');
+      label.textContent = String(i);
+      svg.appendChild(label);
+    });
+
+    // 7) puntos (casos de uso; algunos son grupos que cubren varios segmentos)
+    CASOS.forEach(caso => {
+      const { x, y } = polarPoint(caso.quadrante, caso.ola, caso.angulo, caso.radio);
+      const prod = PRODUCTOS[caso.producto];
+
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'point' + (caso.isCluster ? ' is-cluster' : ''));
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('role', 'button');
+      g.setAttribute('aria-label', caso.isCluster
+        ? caso.titulo + ' — ' + prod.name + ' (' + caso.members.length + ' segmentos, elegir)'
+        : caso.titulo + ' — ' + prod.name);
+      g.dataset.producto = caso.producto;
+      g.dataset.id = caso.id;
+
+      const halo = document.createElementNS(NS, 'circle');
+      halo.setAttribute('cx', x); halo.setAttribute('cy', y); halo.setAttribute('r', 8);
+      halo.setAttribute('class', 'halo');
+      halo.setAttribute('stroke', prod.color);
+
+      const core = document.createElementNS(NS, 'circle');
+      core.setAttribute('cx', x); core.setAttribute('cy', y); core.setAttribute('r', 4.2);
+      core.setAttribute('class', 'core');
+      core.setAttribute('fill', prod.color);
+
+      g.appendChild(halo);
+      g.appendChild(core);
+
+      if (caso.isCluster) {
+        const bx = x + 6.5, by = y - 6.5;
+        const badge = document.createElementNS(NS, 'circle');
+        badge.setAttribute('cx', bx); badge.setAttribute('cy', by); badge.setAttribute('r', 6.5);
+        badge.setAttribute('class', 'cluster-badge');
+        badge.setAttribute('stroke', prod.color);
+        const badgeText = document.createElementNS(NS, 'text');
+        badgeText.setAttribute('x', bx); badgeText.setAttribute('y', by + 2.8);
+        badgeText.setAttribute('class', 'cluster-badge-text');
+        badgeText.textContent = String(caso.members.length);
+        g.appendChild(badge);
+        g.appendChild(badgeText);
+      }
+
+      const onActivate = (e) => {
+        e.stopPropagation();
+        if (caso.isCluster) showSegmentPicker(e, caso);
+        else { hideSegmentPicker(); selectCaso(caso.id); }
+      };
+      g.addEventListener('mouseenter', (e) => { hoverProduct(caso.producto); showTooltip(e, caso); });
+      g.addEventListener('mousemove', (e) => moveTooltip(e));
+      g.addEventListener('mouseleave', () => { hoverProduct(null); hideTooltip(); });
+      g.addEventListener('click', onActivate);
+      g.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(e); }
+      });
+
+      svg.appendChild(g);
+    });
+
+    svg.addEventListener('click', (e) => { if (e.target === svg) { deselect(); hideSegmentPicker(); } });
+  }
+
+  // ---- helpers de resaltado -------------------------------------------
+
+  function highlightCasoIds(idSet){
+    document.querySelectorAll('.point').forEach(p => {
+      if (idSet.has(p.dataset.id)) { p.classList.add('highlight'); p.classList.remove('dim'); }
+      else { p.classList.add('dim'); p.classList.remove('highlight'); }
+    });
+  }
+  function clearHighlight(){
+    document.querySelectorAll('.point').forEach(p => p.classList.remove('dim', 'highlight'));
+  }
+  function highlightLegend(productIdSet){
+    document.querySelectorAll('.legend-item').forEach(li => {
+      li.classList.toggle('is-active', productIdSet.has(li.dataset.producto));
+    });
+  }
+  function clearLegend(){
+    document.querySelectorAll('.legend-item').forEach(li => li.classList.remove('is-active'));
+  }
+  function applyPinned(){
+    const active = pinnedProducts.size > 0;
+    document.querySelectorAll('.point').forEach(p => {
+      if (!active) { p.classList.remove('dim', 'highlight'); return; }
+      const isPinned = pinnedProducts.has(p.dataset.producto);
+      p.classList.toggle('highlight', isPinned);
+      p.classList.toggle('dim', !isPinned);
+    });
+    document.querySelectorAll('.legend-item').forEach(li => {
+      li.classList.toggle('is-pinned', pinnedProducts.has(li.dataset.producto));
+    });
+  }
+  function restoreState(){
+    if (pinnedProducts.size > 0) applyPinned();
+    else { clearHighlight(); clearLegend(); }
+  }
+  function toggleProductPin(id){
+    if (pinnedProducts.has(id)) pinnedProducts.delete(id); else pinnedProducts.add(id);
+    applyPinned();
+  }
+  function setQuadOverlay(quadId){
+    document.querySelectorAll('.quad-overlay').forEach(el => el.classList.toggle('is-active', el.dataset.q === quadId));
+    document.querySelectorAll('.quad-label').forEach(t => t.classList.toggle('is-hovered', t.dataset.q === quadId));
+  }
+  function setRingHighlight(olaIndex){
+    document.querySelectorAll('.ring').forEach(r => {
+      const idx = Number(r.dataset.ola);
+      r.classList.toggle('ring-highlight', idx === olaIndex);
+      r.classList.toggle('ring-faded', olaIndex !== null && idx !== olaIndex);
+    });
+  }
+  function highlightSegments(segmentSet){
+    document.querySelectorAll('.segment-chip').forEach(ch => {
+      ch.classList.toggle('is-hovered', segmentSet.has(ch.dataset.segment));
+    });
+  }
+  function clearSegmentHighlight(){
+    document.querySelectorAll('.segment-chip').forEach(ch => ch.classList.remove('is-hovered'));
+  }
+
+  // ---- hover: producto / cuadrante / ola --------------------------------
+
+  function hoverProduct(prodId){
+    if (selectedId) return;
+    if (!prodId) { restoreState(); clearSegmentHighlight(); return; }
+    const casos = CASOS.filter(c => c.producto === prodId);
+    highlightCasoIds(new Set(casos.map(c => c.id)));
+    highlightLegend(new Set([prodId]));
+    highlightSegments(new Set(PRODUCTOS[prodId].segmentos));
+  }
+
+  function hoverQuadrant(quadId){
+    if (selectedId) return;
+    if (!quadId) { restoreState(); setQuadOverlay(null); clearSegmentHighlight(); return; }
+    const casos = CASOS.filter(c => c.quadrante === quadId);
+    highlightCasoIds(new Set(casos.map(c => c.id)));
+    highlightLegend(new Set(casos.map(c => c.producto)));
+    setQuadOverlay(quadId);
+    const segs = new Set();
+    casos.forEach(c => PRODUCTOS[c.producto].segmentos.forEach(s => segs.add(s)));
+    highlightSegments(segs);
+  }
+
+  function hoverWave(olaIndex){
+    if (selectedId) return;
+    if (olaIndex === null) { restoreState(); setRingHighlight(null); return; }
+    const casos = CASOS.filter(c => c.ola === olaIndex);
+    highlightCasoIds(new Set(casos.map(c => c.id)));
+    highlightLegend(new Set(casos.map(c => c.producto)));
+    setRingHighlight(olaIndex);
+  }
+
+  // ---- filtro por segmento -----------------------------------------------
+
+  function toggleSegment(seg){
+    if (activeSegments.has(seg)) activeSegments.delete(seg); else activeSegments.add(seg);
+    applyFilter();
+  }
+
+  function applyFilter(){
+    document.querySelectorAll('.point').forEach(p => {
+      const caso = CASOS.find(c => c.id === p.dataset.id);
+      const visible = activeSegments.size === 0 || caso.segmentos.some(s => activeSegments.has(s));
+      p.classList.toggle('filtered-out', !visible);
+    });
+    document.querySelectorAll('.segment-chip').forEach(ch => {
+      ch.classList.toggle('is-active', activeSegments.has(ch.dataset.segment));
+    });
+  }
+
+  // ---- clic: selección de caso ------------------------------------------
+
+  function selectCaso(id){
+    if (selectedId === id) { deselect(); return; }
+    selectedId = id;
+    const caso = CASO_BY_ID[id];
+    const mismoProducto = CASOS.filter(c => c.producto === caso.producto);
+    highlightCasoIds(new Set(mismoProducto.map(c => c.id)));
+    highlightLegend(new Set([caso.producto]));
+    const domId = MEMBER_PARENT[id] || id;
+    document.querySelectorAll('.point').forEach(p => p.classList.toggle('selected', p.dataset.id === domId));
+    openModal(caso);
+  }
+
+  function deselect(){
+    selectedId = null;
+    restoreState();
+    setQuadOverlay(null);
+    setRingHighlight(null);
+    document.querySelectorAll('.point').forEach(p => p.classList.remove('selected'));
+    closeModal();
+    hideSegmentPicker();
+  }
+
+  function buildLegend(){
+    const list = document.getElementById('legendList');
+    list.innerHTML = '';
+    Object.entries(PRODUCTOS).forEach(([id, prod]) => {
+      const count = prod.rowCount != null ? prod.rowCount : CASOS.filter(c => c.producto === id).length;
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.dataset.producto = id;
+      item.innerHTML = `<span class="legend-swatch" style="background:${prod.color}"></span><span class="legend-name">${prod.name}</span><span class="legend-count">${count}</span>`;
+      item.title = 'Clic para destacar este producto en el radar';
+      item.addEventListener('mouseenter', () => hoverProduct(id));
+      item.addEventListener('mouseleave', () => hoverProduct(null));
+      item.addEventListener('click', () => toggleProductPin(id));
+      list.appendChild(item);
+    });
+  }
+
+  function buildSegmentChips(){
+    const list = document.getElementById('segmentList');
+    list.innerHTML = '';
+    const allSegments = [];
+    Object.values(PRODUCTOS).forEach(p => p.segmentos.forEach(s => { if (!allSegments.includes(s)) allSegments.push(s); }));
+    allSegments.forEach(seg => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'segment-chip';
+      chip.dataset.segment = seg;
+      chip.textContent = seg;
+      chip.addEventListener('click', () => toggleSegment(seg));
+      list.appendChild(chip);
+    });
+  }
+
+  // ---- ficha detalle (modal) ---------------------------------------------
+
+  function setRow(rowId, fieldId, value){
+    const row = document.getElementById(rowId);
+    const has = value != null && String(value).trim() !== '';
+    row.hidden = !has;
+    if (has) document.getElementById(fieldId).textContent = value;
+  }
+  function openModal(caso){
+    const prod = PRODUCTOS[caso.producto];
+    const quad = QUADRANTES[caso.quadrante];
+    document.getElementById('modalSwatch').style.background = prod.color;
+    document.getElementById('modalProductName').textContent = prod.name;
+    document.getElementById('modalTitle').textContent = caso.titulo;
+    document.getElementById('modalMeta').innerHTML =
+      '<span><strong>' + escapeHtml(quad.label) + '</strong> · ' + escapeHtml(quad.nombre) + '</span><span><strong>Ola ' + caso.ola + '</strong></span>';
+    setRow('modalDescripcionRow', 'modalDescripcion', caso.descripcion);
+    const jobsRow = document.getElementById('modalJobsRow');
+    jobsRow.hidden = !caso.jobs.length;
+    document.getElementById('modalJobs').innerHTML = caso.jobs.map(j => '<span class="job-chip">' + escapeHtml(j) + '</span>').join('');
+    document.getElementById('modalSegmento').textContent = caso.segmentos.length ? caso.segmentos.join(', ') : '—';
+    setRow('modalMercadoRow', 'modalMercado', caso.mercado);
+    setRow('modalCompetenciaRow', 'modalCompetencia', caso.competencia);
+    setRow('modalFuentesRow', 'modalFuentes', caso.fuentes);
+    document.getElementById('modalOverlay').classList.remove('hidden');
+  }
+  function closeModal(){
+    document.getElementById('modalOverlay').classList.add('hidden');
+  }
+  document.getElementById('modalCloseBtn').addEventListener('click', deselect);
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') deselect();
+  });
+  document.addEventListener('click', () => hideSegmentPicker());
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') deselect(); });
+
+  // ---- carga de datos: intenta leer el xlsx junto al HTML; si el navegador lo
+  // bloquea (típico al abrir el archivo con doble clic, protocolo file://), cae
+  // a la última carga guardada en este navegador y finalmente pide seleccionar
+  // el archivo a mano. El botón "Cargar / actualizar Excel" siempre permite
+  // refrescar con la versión más reciente del archivo. ----
+  const XLSX_FILENAME = 'Entregable Planeacion 2027.xlsx';
+  const XLSX_CACHE_KEY = 'ach-radar-xlsx-cache-v1';
+
+  function setStatus(text, kind){
+    const el = document.getElementById('dataStatus');
+    el.textContent = text;
+    el.classList.remove('is-error', 'is-ok');
+    if (kind) el.classList.add(kind);
+  }
+
+  function arrayBufferToBase64(buf){
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    return btoa(binary);
+  }
+  function base64ToArrayBuffer(b64){
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+  }
+
+  function applyWorkbookBuffer(buf, sourceLabel, remember){
+    let data;
+    try {
+      const wb = XLSX.read(buf, { type: 'array' });
+      data = buildCasosFromWorkbook(wb);
+    } catch (e) {
+      console.error(e);
+      setStatus('No se pudo procesar "' + sourceLabel + '": ' + e.message, 'is-error');
+      return false;
+    }
+    PRODUCTOS = data.productos;
+    BANDS = data.bands;
+    CASOS = data.casos;
+    CASO_BY_ID = {};
+    MEMBER_PARENT = {};
+    let totalRows = 0;
+    let clusterCount = 0;
+    CASOS.forEach(c => {
+      if (c.isCluster) {
+        clusterCount++;
+        c.members.forEach(m => { CASO_BY_ID[m.id] = m; MEMBER_PARENT[m.id] = c.id; totalRows++; });
+      } else {
+        CASO_BY_ID[c.id] = c;
+        totalRows++;
+      }
+    });
+    selectedId = null;
+    activeSegments = new Set();
+    pinnedProducts = new Set();
+    hideSegmentPicker();
+    buildSVG();
+    buildLegend();
+    buildSegmentChips();
+    const when = new Date().toLocaleString('es-CO');
+    let msg = totalRows + ' casos cargados desde "' + sourceLabel + '"';
+    if (clusterCount) msg += ' (' + clusterCount + ' agrupados por segmento)';
+    msg += ' · ' + when;
+    if (data.missingSheets.length) msg += ' — hojas no encontradas: ' + data.missingSheets.join(', ');
+    setStatus(msg, data.missingSheets.length ? 'is-error' : 'is-ok');
+    if (remember) { try { localStorage.setItem(XLSX_CACHE_KEY, arrayBufferToBase64(buf)); } catch (e) {} }
+    return true;
+  }
+
+  document.getElementById('xlsxInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setStatus('Leyendo "' + file.name + '"…');
+    const reader = new FileReader();
+    reader.onload = () => applyWorkbookBuffer(reader.result, file.name, true);
+    reader.onerror = () => setStatus('No se pudo leer el archivo seleccionado.', 'is-error');
+    reader.readAsArrayBuffer(file);
+  });
+
+  async function tryAutoFetch(){
+    try {
+      const resp = await fetch(encodeURI(XLSX_FILENAME) + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!resp.ok) return null;
+      return await resp.arrayBuffer();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  (async () => {
+    setStatus('Buscando "' + XLSX_FILENAME + '" junto a este archivo…');
+    const buf = await tryAutoFetch();
+    if (buf && applyWorkbookBuffer(buf, XLSX_FILENAME, true)) return;
+
+    let cached = null;
+    try { cached = localStorage.getItem(XLSX_CACHE_KEY); } catch (e) {}
+    if (cached) {
+      try {
+        if (applyWorkbookBuffer(base64ToArrayBuffer(cached), 'la última carga guardada en este navegador', false)) return;
+      } catch (e) {}
+    }
+
+    setStatus('No se pudo leer el Excel automáticamente (normal si abriste este archivo con doble clic desde el explorador). Usa "Cargar / actualizar Excel" y selecciona "' + XLSX_FILENAME + '".', 'is-error');
+  })();
+</script>
+</body>
+</html>
