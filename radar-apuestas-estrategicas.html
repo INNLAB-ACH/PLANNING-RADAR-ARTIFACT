@@ -46,6 +46,38 @@
   .layout{ display:grid; grid-template-columns:minmax(0,2.7fr) minmax(220px,.8fr); gap:clamp(20px,2.8vw,44px); align-items:start; }
   @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
 
+  /* la vista de Segmentos x Jobs necesita más espacio para el panel de detalle */
+  #viewJobs .layout{ grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr); }
+  @media (max-width:900px){ #viewJobs .layout{ grid-template-columns:1fr; } }
+
+  .view-tabs{ display:flex; gap:8px; margin:0 0 20px; }
+  .view-tab{
+    font-family:inherit; font-size:13.5px; font-weight:600; color:var(--ink-muted);
+    background:transparent; border:1px solid var(--card-border); border-radius:999px;
+    padding:9px 18px; cursor:pointer; transition:all .15s ease;
+  }
+  .view-tab:hover{ border-color:var(--accent); color:var(--ink); }
+  .view-tab.is-active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .view-panel[hidden]{ display:none; }
+
+  .jobs-card{ min-height:auto; }
+  .jobs-card svg{ max-width:100%; }
+  .jobs-node-label{ font-family:'Red Hat Display',sans-serif; font-size:12.5px; font-weight:600; fill:var(--ink); }
+  .jobs-node-count{ font-family:'Red Hat Display',sans-serif; font-size:10.5px; fill:var(--ink-muted); }
+  .jobs-node-rect{ cursor:pointer; transition:opacity .18s ease, filter .18s ease; }
+  .jobs-node-rect.is-dim{ opacity:.28; }
+  .jobs-link{ fill:none; cursor:pointer; transition:opacity .18s ease, stroke-width .18s ease; }
+  .jobs-link.is-dim{ opacity:.06; }
+  .jobs-link.is-hot{ opacity:.9; }
+  .jobs-drilldown-hint{ font-size:12.5px; color:var(--ink-muted); line-height:1.5; margin:0 0 4px; }
+  .jobs-drilldown-list{ display:flex; flex-direction:column; gap:10px; max-height:600px; overflow-y:auto; }
+  .jobs-drilldown-item{ border:1px solid var(--card-border); border-radius:12px; padding:10px 12px; }
+  .jobs-drilldown-item-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; cursor:pointer; }
+  .jobs-drilldown-item-title{ font-size:13px; font-weight:600; color:var(--ink); }
+  .jobs-drilldown-item-title:hover{ color:var(--accent); }
+  .jobs-drilldown-item-link{ font-size:11px; color:var(--accent); flex-shrink:0; white-space:nowrap; }
+  .jobs-drilldown-job{ font-size:12px; color:var(--ink-muted); line-height:1.5; margin-top:6px; padding-left:10px; border-left:2px solid var(--card-border); }
+
   .radar-card{
     position:relative;
     display:flex; flex-direction:column;
@@ -230,6 +262,12 @@
     <input type="file" id="xlsxInput" accept=".xlsx" hidden>
   </div>
 
+  <div class="view-tabs">
+    <button type="button" class="view-tab is-active" data-view="radar">Radar</button>
+    <button type="button" class="view-tab" data-view="jobs">Segmentos × Jobs to be done</button>
+  </div>
+
+  <div id="viewRadar" class="view-panel">
   <div class="layout">
     <div class="radar-card">
       <div class="radar-canvas">
@@ -251,6 +289,23 @@
       <div class="panel">
         <h2>Segmentos</h2>
         <div id="segmentList" class="segment-list"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div id="viewJobs" class="view-panel" hidden>
+    <div class="layout">
+      <div class="radar-card jobs-card">
+        <svg id="jobsGraph" viewBox="0 0 760 640" role="img" aria-label="Conexiones entre segmentos y jobs to be done, agrupadas por producto"></svg>
+        <p class="radar-caption">Cada línea conecta un segmento con un producto a través de sus jobs to be done; el grosor indica cuántos jobs los conectan. Pasa el mouse para resaltar, haz clic para ver el detalle de los casos y jobs involucrados.</p>
+      </div>
+      <div class="sidebar">
+        <div class="panel" id="jobsDrilldownPanel">
+          <h2 id="jobsDrilldownTitle">Detalle</h2>
+          <p class="jobs-drilldown-hint" id="jobsDrilldownHint">Selecciona un segmento, un producto o una conexión para ver los casos y jobs to be done involucrados.</p>
+          <div id="jobsDrilldownList" class="jobs-drilldown-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1050,6 +1105,200 @@
     });
   }
 
+  // ---- vista "Segmentos × Jobs to be done" --------------------------------
+
+  let JOBS_LINKS = [];
+  const jobsGraphSvg = document.getElementById('jobsGraph');
+
+  function getFlatCasos(){
+    const flat = [];
+    CASOS.forEach(c => {
+      if (c.isCluster) c.members.forEach(m => flat.push(m));
+      else flat.push(c);
+    });
+    return flat;
+  }
+
+  function computeSegmentoProductoLinks(){
+    const flat = getFlatCasos();
+    const linkMap = {};
+    const segTotals = {};
+    const prodTotals = {};
+    flat.forEach(c => {
+      const weight = c.jobs.length || 1;
+      c.segmentos.forEach(s => {
+        const key = s + '|' + c.producto;
+        if (!linkMap[key]) linkMap[key] = { segmento: s, producto: c.producto, count: 0, casos: [] };
+        linkMap[key].count += weight;
+        linkMap[key].casos.push(c);
+        segTotals[s] = (segTotals[s] || 0) + weight;
+        prodTotals[c.producto] = (prodTotals[c.producto] || 0) + weight;
+      });
+    });
+    return { links: Object.values(linkMap), segTotals, prodTotals };
+  }
+
+  function layoutNodes(entries, x, width){
+    const TOP = 36, BOTTOM = 604, GAP = 14;
+    const heights = entries.map(e => Math.max(30, Math.min(84, 20 + Math.sqrt(e.total) * 7)));
+    const stackH = heights.reduce((a, b) => a + b, 0) + GAP * (entries.length - 1);
+    let y = TOP + Math.max(0, (BOTTOM - TOP - stackH) / 2);
+    return entries.map((e, i) => {
+      const h = heights[i];
+      const node = { key: e.key, label: e.label, total: e.total, x, width, y, height: h, cy: y + h / 2 };
+      y += h + GAP;
+      return node;
+    });
+  }
+
+  function jobsLinkPath(x1, y1, x2, y2){
+    const mx = (x1 + x2) / 2;
+    return 'M' + x1 + ',' + y1 + ' C' + mx + ',' + y1 + ' ' + mx + ',' + y2 + ' ' + x2 + ',' + y2;
+  }
+
+  function buildJobsView(){
+    jobsGraphSvg.innerHTML = '';
+    if (!CASOS.length) return;
+
+    const { links, segTotals, prodTotals } = computeSegmentoProductoLinks();
+    JOBS_LINKS = links;
+
+    const segEntries = Object.keys(segTotals).sort((a, b) => segTotals[b] - segTotals[a])
+      .map(k => ({ key: k, label: k, total: segTotals[k] }));
+    const prodEntries = Object.keys(PRODUCTOS_META).filter(k => prodTotals[k])
+      .map(k => ({ key: k, label: PRODUCTOS[k].name, total: prodTotals[k] }));
+
+    const segNodes = layoutNodes(segEntries, 24, 168);
+    const prodNodes = layoutNodes(prodEntries, 568, 168);
+    const segByKey = {}; segNodes.forEach(n => { segByKey[n.key] = n; });
+    const prodByKey = {}; prodNodes.forEach(n => { prodByKey[n.key] = n; });
+
+    const maxCount = links.reduce((m, l) => Math.max(m, l.count), 1);
+
+    // enlaces
+    links.forEach(l => {
+      const sNode = segByKey[l.segmento], pNode = prodByKey[l.producto];
+      if (!sNode || !pNode) return;
+      const path = document.createElementNS(NS, 'path');
+      const w = Math.max(1.4, Math.min(16, 1 + Math.sqrt(l.count / maxCount) * 15));
+      path.setAttribute('d', jobsLinkPath(sNode.x + sNode.width, sNode.cy, pNode.x, pNode.cy));
+      path.setAttribute('class', 'jobs-link');
+      path.setAttribute('stroke', PRODUCTOS[l.producto].color);
+      path.setAttribute('stroke-width', w);
+      path.setAttribute('stroke-opacity', 0.32);
+      path.dataset.seg = l.segmento;
+      path.dataset.prod = l.producto;
+      path.addEventListener('mouseenter', () => setJobsHighlight(l.segmento, l.producto));
+      path.addEventListener('mouseleave', () => clearJobsHighlight());
+      path.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showJobsDrilldown(l.segmento + ' → ' + PRODUCTOS[l.producto].name,
+          l.count + ' jobs to be done conectan este segmento con este producto.', l.casos);
+      });
+      jobsGraphSvg.appendChild(path);
+    });
+
+    function drawNodeGroup(nodes, kind, anchor){
+      nodes.forEach(n => {
+        const g = document.createElementNS(NS, 'g');
+        g.setAttribute('tabindex', '0');
+        g.setAttribute('role', 'button');
+        g.setAttribute('aria-label', n.label + ', ' + n.total + ' jobs to be done');
+
+        const rect = document.createElementNS(NS, 'rect');
+        rect.setAttribute('x', n.x); rect.setAttribute('y', n.y);
+        rect.setAttribute('width', n.width); rect.setAttribute('height', n.height);
+        rect.setAttribute('rx', 10);
+        rect.setAttribute('class', 'jobs-node-rect');
+        rect.dataset.key = n.key; rect.dataset.kind = kind;
+        rect.setAttribute('fill', kind === 'producto' ? PRODUCTOS[n.key].color + '22' : 'var(--hover-bg)');
+        rect.setAttribute('stroke', kind === 'producto' ? PRODUCTOS[n.key].color : 'var(--card-border)');
+
+        const label = document.createElementNS(NS, 'text');
+        label.setAttribute('x', anchor === 'start' ? n.x + 12 : n.x + n.width - 12);
+        label.setAttribute('y', n.cy - 3);
+        label.setAttribute('text-anchor', anchor);
+        label.setAttribute('class', 'jobs-node-label');
+        label.textContent = n.label;
+
+        const count = document.createElementNS(NS, 'text');
+        count.setAttribute('x', anchor === 'start' ? n.x + 12 : n.x + n.width - 12);
+        count.setAttribute('y', n.cy + 13);
+        count.setAttribute('text-anchor', anchor);
+        count.setAttribute('class', 'jobs-node-count');
+        count.textContent = n.total + ' jobs';
+
+        g.appendChild(rect); g.appendChild(label); g.appendChild(count);
+        const activate = () => {
+          const casos = kind === 'segmento'
+            ? JOBS_LINKS.filter(l => l.segmento === n.key).flatMap(l => l.casos)
+            : JOBS_LINKS.filter(l => l.producto === n.key).flatMap(l => l.casos);
+          showJobsDrilldown(n.label, n.total + ' jobs to be done asociados.', casos);
+        };
+        g.addEventListener('mouseenter', () => setJobsHighlight(kind === 'segmento' ? n.key : null, kind === 'producto' ? n.key : null));
+        g.addEventListener('mouseleave', () => clearJobsHighlight());
+        g.addEventListener('click', (e) => { e.stopPropagation(); activate(); });
+        g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+        jobsGraphSvg.appendChild(g);
+      });
+    }
+    drawNodeGroup(segNodes, 'segmento', 'start');
+    drawNodeGroup(prodNodes, 'producto', 'end');
+
+    jobsGraphSvg.addEventListener('click', (e) => { if (e.target === jobsGraphSvg) clearJobsHighlight(); });
+  }
+
+  function setJobsHighlight(segKey, prodKey){
+    const active = !!(segKey || prodKey);
+    jobsGraphSvg.querySelectorAll('.jobs-link').forEach(el => {
+      const match = (!segKey || el.dataset.seg === segKey) && (!prodKey || el.dataset.prod === prodKey);
+      el.classList.toggle('is-dim', active && !match);
+      el.classList.toggle('is-hot', active && match);
+    });
+    jobsGraphSvg.querySelectorAll('.jobs-node-rect').forEach(el => {
+      const k = el.dataset.key, kind = el.dataset.kind;
+      let relevant = true;
+      if (kind === 'segmento') relevant = !segKey || k === segKey || (!prodKey ? true : JOBS_LINKS.some(l => l.segmento === k && l.producto === prodKey));
+      if (kind === 'producto') relevant = !prodKey || k === prodKey || (!segKey ? true : JOBS_LINKS.some(l => l.producto === k && l.segmento === segKey));
+      if (segKey && prodKey) {
+        relevant = (kind === 'segmento' && k === segKey) || (kind === 'producto' && k === prodKey);
+      }
+      el.classList.toggle('is-dim', active && !relevant);
+    });
+  }
+  function clearJobsHighlight(){
+    jobsGraphSvg.querySelectorAll('.jobs-link, .jobs-node-rect').forEach(el => el.classList.remove('is-dim', 'is-hot'));
+  }
+
+  function showJobsDrilldown(title, hint, casos){
+    document.getElementById('jobsDrilldownTitle').textContent = title;
+    document.getElementById('jobsDrilldownHint').textContent = hint;
+    const list = document.getElementById('jobsDrilldownList');
+    list.innerHTML = '';
+    const seen = new Set();
+    casos.forEach(c => {
+      if (seen.has(c.id)) return;
+      seen.add(c.id);
+      const item = document.createElement('div');
+      item.className = 'jobs-drilldown-item';
+      const head = document.createElement('div');
+      head.className = 'jobs-drilldown-item-head';
+      head.innerHTML = '<span class="jobs-drilldown-item-title">' +
+        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + PRODUCTOS[c.producto].color + '"></span>' +
+        escapeHtml(c.titulo) + '</span><span class="jobs-drilldown-item-link">' + escapeHtml(c.segmentos.join(', ')) + ' · Ver ficha →</span>';
+      head.addEventListener('click', () => selectCaso(c.id));
+      item.appendChild(head);
+      c.jobs.forEach(j => {
+        const jobEl = document.createElement('div');
+        jobEl.className = 'jobs-drilldown-job';
+        jobEl.textContent = j;
+        item.appendChild(jobEl);
+      });
+      list.appendChild(item);
+    });
+    if (!seen.size) list.innerHTML = '<p class="jobs-drilldown-hint">Sin casos para esta selección.</p>';
+  }
+
   // ---- ficha detalle (modal) ---------------------------------------------
 
   function setRow(rowId, fieldId, value){
@@ -1084,6 +1333,16 @@
     if (e.target.id === 'modalOverlay') deselect();
   });
   document.addEventListener('click', () => hideSegmentPicker());
+
+  document.querySelectorAll('.view-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-tab').forEach(b => b.classList.toggle('is-active', b === btn));
+      const target = btn.dataset.view;
+      document.getElementById('viewRadar').hidden = target !== 'radar';
+      document.getElementById('viewJobs').hidden = target !== 'jobs';
+      if (target === 'jobs') buildJobsView();
+    });
+  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') deselect(); });
 
   // ---- carga de datos: intenta leer el xlsx junto al HTML; si el navegador lo
@@ -1148,6 +1407,7 @@
     buildSVG();
     buildLegend();
     buildSegmentChips();
+    buildJobsView();
     const when = new Date().toLocaleString('es-CO');
     let msg = totalRows + ' casos cargados desde "' + sourceLabel + '"';
     if (clusterCount) msg += ' (' + clusterCount + ' agrupados por segmento)';
