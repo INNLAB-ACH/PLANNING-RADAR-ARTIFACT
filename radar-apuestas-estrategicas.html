@@ -78,6 +78,24 @@
   .jobs-drilldown-item-link{ font-size:11px; color:var(--accent); flex-shrink:0; white-space:nowrap; }
   .jobs-drilldown-job{ font-size:12px; color:var(--ink-muted); line-height:1.5; margin-top:6px; padding-left:10px; border-left:2px solid var(--card-border); }
 
+  .filter-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:14px 20px; padding-bottom:16px; margin-bottom:6px; border-bottom:1px solid var(--card-border); }
+  .filter-search-input{
+    flex:1 1 220px; min-width:180px; font-family:inherit; font-size:13px; color:var(--ink);
+    background:var(--hover-bg); border:1px solid var(--card-border); border-radius:999px;
+    padding:9px 16px; outline:none; transition:border-color .15s ease, background .15s ease;
+  }
+  .filter-search-input:focus{ border-color:var(--accent); background:#fff; }
+  .filter-group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .filter-label{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--label-muted); }
+  .filter-chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .filter-chip-row .segment-chip{ padding:5px 12px; font-size:12px; }
+  .filter-clear{
+    font-family:inherit; font-size:12px; font-weight:600; color:var(--ink-muted);
+    background:none; border:none; cursor:pointer; text-decoration:underline; padding:4px 0;
+    margin-left:auto;
+  }
+  .filter-clear:hover{ color:var(--accent); }
+
   .radar-card{
     position:relative;
     display:flex; flex-direction:column;
@@ -270,6 +288,18 @@
   <div id="viewRadar" class="view-panel">
   <div class="layout">
     <div class="radar-card">
+      <div class="filter-bar">
+        <input type="search" id="radarSearch" class="filter-search-input" placeholder="Buscar por caso o job to be done…">
+        <div class="filter-group">
+          <span class="filter-label">Ola</span>
+          <div id="radarOlaChips" class="filter-chip-row"></div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Producto</span>
+          <div id="radarProductoChips" class="filter-chip-row"></div>
+        </div>
+        <button type="button" id="radarFiltersClear" class="filter-clear">Limpiar filtros</button>
+      </div>
       <div class="radar-canvas">
         <svg id="radar" viewBox="-30 -30 880 880" role="img" aria-label="Radar de apuestas estratégicas con casos de uso por producto"></svg>
       </div>
@@ -297,8 +327,20 @@
   <div id="viewJobs" class="view-panel" hidden>
     <div class="layout">
       <div class="radar-card jobs-card">
+        <div class="filter-bar">
+          <input type="search" id="jobsSearch" class="filter-search-input" placeholder="Buscar por caso o job to be done…">
+          <div class="filter-group">
+            <span class="filter-label">Ola</span>
+            <div id="jobsOlaChips" class="filter-chip-row"></div>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Producto</span>
+            <div id="jobsProductoChips" class="filter-chip-row"></div>
+          </div>
+          <button type="button" id="jobsFiltersClear" class="filter-clear">Limpiar filtros</button>
+        </div>
         <svg id="jobsGraph" viewBox="0 0 760 640" role="img" aria-label="Conexiones entre segmentos y jobs to be done, agrupadas por producto"></svg>
-        <p class="radar-caption">Cada línea conecta un segmento con un producto a través de sus jobs to be done; el grosor indica cuántos jobs los conectan. Pasa el mouse para resaltar, haz clic para ver el detalle de los casos y jobs involucrados.</p>
+        <p class="radar-caption">Cada línea conecta un segmento con un producto a través de sus jobs to be done; el grosor indica cuántos jobs los conectan (según los filtros activos). Pasa el mouse para resaltar, haz clic para ver el detalle de los casos y jobs involucrados.</p>
       </div>
       <div class="sidebar">
         <div class="panel" id="jobsDrilldownPanel">
@@ -1037,14 +1079,72 @@
     applyFilter();
   }
 
+  let radarFilters = { search: '', olas: new Set(), productos: new Set() };
+
+  function casoMatchesSearch(caso, term){
+    const items = caso.isCluster ? caso.members : [caso];
+    return items.some(c => normTxt(c.titulo + ' ' + (c.jobs || []).join(' ')).includes(term));
+  }
+
+  function passesRadarFilters(caso){
+    if (activeSegments.size && !caso.segmentos.some(s => activeSegments.has(s))) return false;
+    if (radarFilters.olas.size && !radarFilters.olas.has(caso.ola)) return false;
+    if (radarFilters.productos.size && !radarFilters.productos.has(caso.producto)) return false;
+    if (radarFilters.search) {
+      const term = normTxt(radarFilters.search.trim());
+      if (term && !casoMatchesSearch(caso, term)) return false;
+    }
+    return true;
+  }
+
   function applyFilter(){
     document.querySelectorAll('.point').forEach(p => {
       const caso = CASOS.find(c => c.id === p.dataset.id);
-      const visible = activeSegments.size === 0 || caso.segmentos.some(s => activeSegments.has(s));
-      p.classList.toggle('filtered-out', !visible);
+      p.classList.toggle('filtered-out', !passesRadarFilters(caso));
     });
-    document.querySelectorAll('.segment-chip').forEach(ch => {
+    document.querySelectorAll('#segmentList .segment-chip').forEach(ch => {
       ch.classList.toggle('is-active', activeSegments.has(ch.dataset.segment));
+    });
+  }
+
+  function buildRadarFilterChips(){
+    const olaCounts = {};
+    CASOS.forEach(c => { olaCounts[c.ola] = (olaCounts[c.ola] || 0) + 1; });
+    const maxOla = CASOS.reduce((m, c) => Math.max(m, c.ola), 0);
+
+    const olaList = document.getElementById('radarOlaChips');
+    olaList.innerHTML = '';
+    for (let i = 0; i <= maxOla; i++) {
+      if (!olaCounts[i]) continue;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'segment-chip' + (radarFilters.olas.has(i) ? ' is-active' : '');
+      chip.textContent = 'Ola ' + i + ' (' + olaCounts[i] + ')';
+      chip.addEventListener('click', () => {
+        if (radarFilters.olas.has(i)) radarFilters.olas.delete(i); else radarFilters.olas.add(i);
+        chip.classList.toggle('is-active');
+        applyFilter();
+      });
+      olaList.appendChild(chip);
+    }
+
+    const prodCounts = {};
+    CASOS.forEach(c => { prodCounts[c.producto] = (prodCounts[c.producto] || 0) + 1; });
+    const prodList = document.getElementById('radarProductoChips');
+    prodList.innerHTML = '';
+    Object.keys(PRODUCTOS_META).forEach(key => {
+      if (!prodCounts[key]) return;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'segment-chip' + (radarFilters.productos.has(key) ? ' is-active' : '');
+      chip.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + PRODUCTOS[key].color + '"></span>' +
+        escapeHtml(PRODUCTOS[key].name);
+      chip.addEventListener('click', () => {
+        if (radarFilters.productos.has(key)) radarFilters.productos.delete(key); else radarFilters.productos.add(key);
+        chip.classList.toggle('is-active');
+        applyFilter();
+      });
+      prodList.appendChild(chip);
     });
   }
 
@@ -1109,6 +1209,7 @@
 
   let JOBS_LINKS = [];
   const jobsGraphSvg = document.getElementById('jobsGraph');
+  let jobsFilters = { search: '', olas: new Set(), productos: new Set() };
 
   function getFlatCasos(){
     const flat = [];
@@ -1119,8 +1220,20 @@
     return flat;
   }
 
-  function computeSegmentoProductoLinks(){
-    const flat = getFlatCasos();
+  function getFilteredFlatCasos(){
+    const term = normTxt(jobsFilters.search.trim());
+    return getFlatCasos().filter(c => {
+      if (jobsFilters.olas.size && !jobsFilters.olas.has(c.ola)) return false;
+      if (jobsFilters.productos.size && !jobsFilters.productos.has(c.producto)) return false;
+      if (term) {
+        const hay = normTxt(c.titulo + ' ' + c.jobs.join(' '));
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }
+
+  function computeSegmentoProductoLinks(flat){
     const linkMap = {};
     const segTotals = {};
     const prodTotals = {};
@@ -1156,11 +1269,62 @@
     return 'M' + x1 + ',' + y1 + ' C' + mx + ',' + y1 + ' ' + mx + ',' + y2 + ' ' + x2 + ',' + y2;
   }
 
+  function buildJobsFilterChips(){
+    const flatAll = getFlatCasos();
+    const olaCounts = {};
+    flatAll.forEach(c => { olaCounts[c.ola] = (olaCounts[c.ola] || 0) + (c.jobs.length || 1); });
+    const maxOla = flatAll.reduce((m, c) => Math.max(m, c.ola), 0);
+
+    const olaList = document.getElementById('jobsOlaChips');
+    olaList.innerHTML = '';
+    for (let i = 0; i <= maxOla; i++) {
+      if (!olaCounts[i]) continue;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'segment-chip' + (jobsFilters.olas.has(i) ? ' is-active' : '');
+      chip.textContent = 'Ola ' + i + ' (' + olaCounts[i] + ')';
+      chip.addEventListener('click', () => {
+        if (jobsFilters.olas.has(i)) jobsFilters.olas.delete(i); else jobsFilters.olas.add(i);
+        buildJobsView();
+      });
+      olaList.appendChild(chip);
+    }
+
+    const prodCounts = {};
+    flatAll.forEach(c => { prodCounts[c.producto] = (prodCounts[c.producto] || 0) + (c.jobs.length || 1); });
+    const prodList = document.getElementById('jobsProductoChips');
+    prodList.innerHTML = '';
+    Object.keys(PRODUCTOS_META).forEach(key => {
+      if (!prodCounts[key]) return;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'segment-chip' + (jobsFilters.productos.has(key) ? ' is-active' : '');
+      chip.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + PRODUCTOS[key].color + '"></span>' +
+        escapeHtml(PRODUCTOS[key].name) + ' (' + prodCounts[key] + ')';
+      chip.addEventListener('click', () => {
+        if (jobsFilters.productos.has(key)) jobsFilters.productos.delete(key); else jobsFilters.productos.add(key);
+        buildJobsView();
+      });
+      prodList.appendChild(chip);
+    });
+  }
+
+  function showDefaultJobsResults(flat){
+    const totalJobs = flat.reduce((n, c) => n + (c.jobs.length || 1), 0);
+    const hasFilters = jobsFilters.search.trim() || jobsFilters.olas.size || jobsFilters.productos.size;
+    const hint = flat.length
+      ? flat.length + ' casos · ' + totalJobs + ' jobs to be done' + (hasFilters ? ' coinciden con los filtros actuales.' : ' en total.')
+      : 'Ningún caso coincide con la búsqueda o los filtros actuales.';
+    showJobsDrilldown('Resultados', hint, flat);
+  }
+
   function buildJobsView(){
     jobsGraphSvg.innerHTML = '';
+    buildJobsFilterChips();
     if (!CASOS.length) return;
 
-    const { links, segTotals, prodTotals } = computeSegmentoProductoLinks();
+    const flat = getFilteredFlatCasos();
+    const { links, segTotals, prodTotals } = computeSegmentoProductoLinks(flat);
     JOBS_LINKS = links;
 
     const segEntries = Object.keys(segTotals).sort((a, b) => segTotals[b] - segTotals[a])
@@ -1246,6 +1410,8 @@
     drawNodeGroup(prodNodes, 'producto', 'end');
 
     jobsGraphSvg.addEventListener('click', (e) => { if (e.target === jobsGraphSvg) clearJobsHighlight(); });
+
+    showDefaultJobsResults(flat);
   }
 
   function setJobsHighlight(segKey, prodKey){
@@ -1345,6 +1511,32 @@
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') deselect(); });
 
+  let jobsSearchTimer = null;
+  document.getElementById('jobsSearch').addEventListener('input', (e) => {
+    const value = e.target.value;
+    clearTimeout(jobsSearchTimer);
+    jobsSearchTimer = setTimeout(() => { jobsFilters.search = value; buildJobsView(); }, 150);
+  });
+  document.getElementById('jobsFiltersClear').addEventListener('click', () => {
+    jobsFilters = { search: '', olas: new Set(), productos: new Set() };
+    document.getElementById('jobsSearch').value = '';
+    buildJobsView();
+  });
+
+  let radarSearchTimer = null;
+  document.getElementById('radarSearch').addEventListener('input', (e) => {
+    const value = e.target.value;
+    clearTimeout(radarSearchTimer);
+    radarSearchTimer = setTimeout(() => { radarFilters.search = value; applyFilter(); }, 150);
+  });
+  document.getElementById('radarFiltersClear').addEventListener('click', () => {
+    radarFilters = { search: '', olas: new Set(), productos: new Set() };
+    activeSegments = new Set();
+    document.getElementById('radarSearch').value = '';
+    buildRadarFilterChips();
+    applyFilter();
+  });
+
   // ---- carga de datos: intenta leer el xlsx junto al HTML; si el navegador lo
   // bloquea (típico al abrir el archivo con doble clic, protocolo file://), cae
   // a la última carga guardada en este navegador y finalmente pide seleccionar
@@ -1403,10 +1595,18 @@
     selectedId = null;
     activeSegments = new Set();
     pinnedProducts = new Set();
+    jobsFilters = { search: '', olas: new Set(), productos: new Set() };
+    radarFilters = { search: '', olas: new Set(), productos: new Set() };
+    const jobsSearchInput = document.getElementById('jobsSearch');
+    if (jobsSearchInput) jobsSearchInput.value = '';
+    const radarSearchInput = document.getElementById('radarSearch');
+    if (radarSearchInput) radarSearchInput.value = '';
     hideSegmentPicker();
     buildSVG();
     buildLegend();
     buildSegmentChips();
+    buildRadarFilterChips();
+    applyFilter();
     buildJobsView();
     const when = new Date().toLocaleString('es-CO');
     let msg = totalRows + ' casos cargados desde "' + sourceLabel + '"';
