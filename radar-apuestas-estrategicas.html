@@ -190,6 +190,10 @@
   }
   .segment-chip:hover, .segment-chip.is-hovered{ border-color:var(--accent); background:var(--accent-soft); }
   .segment-chip.is-active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .segment-chip.is-disabled, .segment-chip:disabled{
+    cursor:not-allowed; opacity:.35; color:var(--ink-muted);
+  }
+  .segment-chip.is-disabled:hover, .segment-chip:disabled:hover{ border-color:var(--card-border); background:#fff; }
 
   .quad-overlay{ fill:var(--accent); opacity:0; transition:opacity .2s ease; pointer-events:none; }
   .quad-overlay.is-active{ opacity:.06; }
@@ -909,44 +913,36 @@
     svg.appendChild(centerDot);
 
     // 5) etiquetas de cuadrante — único disparador del hover de AE
-    // Se posicionan fuera del anillo exterior: primero se dibuja el texto, se mide
-    // su caja real (getBBox) y se empuja en Y lo necesario para despejar la curva
-    // del círculo en el punto más cercano al centro del texto (su borde interior).
-    // Así funciona sin importar cuánto cambie el largo del nombre del cuadrante.
-    const QUAD_LABEL_MARGIN = 14;
+    // Cada título se alinea a 20px de la esquina exterior de su cuadrante (la
+    // esquina del viewBox, no del anillo). Como esa esquina está muy lejos del
+    // radio del anillo exterior, queda garantizado que el texto nunca lo pisa,
+    // sin importar cuántas líneas ocupe el nombre del cuadrante.
+    const CORNER_MARGIN = 20;
+    const VB_LEFT = -30, VB_TOP = -30, VB_RIGHT = 850, VB_BOTTOM = 850;
     [
-      { q: 'AE1', x: 90, y: 58, anchor: 'start', side: 'top' },
-      { q: 'AE2', x: 730, y: 58, anchor: 'end', side: 'top' },
-      { q: 'AE3', x: 90, y: 762, anchor: 'start', side: 'bottom' },
-      { q: 'AE4', x: 730, y: 762, anchor: 'end', side: 'bottom' },
+      { q: 'AE1', anchor: 'start', side: 'top' },
+      { q: 'AE2', anchor: 'end', side: 'top' },
+      { q: 'AE3', anchor: 'start', side: 'bottom' },
+      { q: 'AE4', anchor: 'end', side: 'bottom' },
     ].forEach(l => {
+      const x = l.anchor === 'start' ? VB_LEFT + CORNER_MARGIN : VB_RIGHT - CORNER_MARGIN;
+      const initialY = l.side === 'top' ? VB_TOP + CORNER_MARGIN : VB_BOTTOM - CORNER_MARGIN;
+
       const t = document.createElementNS(NS, 'text');
-      t.setAttribute('x', l.x); t.setAttribute('y', l.y);
+      t.setAttribute('x', x); t.setAttribute('y', initialY);
       t.setAttribute('text-anchor', l.anchor);
       t.setAttribute('class', 'quad-label');
       t.dataset.q = l.q;
-      wrapQuadLabel(t, l.x, QUADRANTES[l.q].nombre, 20);
+      wrapQuadLabel(t, x, QUADRANTES[l.q].nombre, 20);
       svg.appendChild(t);
 
-      let finalY = l.y;
       const bbox = t.getBBox();
-      const innerX = l.anchor === 'end' ? bbox.x : bbox.x + bbox.width;
-      const dxInner = Math.abs(innerX - CENTER.x);
-      if (dxInner < OUTER) {
-        const halfSpan = Math.sqrt(OUTER * OUTER - dxInner * dxInner);
-        if (l.side === 'top') {
-          const ringEdgeY = CENTER.y - halfSpan;
-          const overlap = (bbox.y + bbox.height) - (ringEdgeY - QUAD_LABEL_MARGIN);
-          if (overlap > 0) finalY = l.y - overlap;
-        } else {
-          const ringEdgeY = CENTER.y + halfSpan;
-          const overlap = (ringEdgeY + QUAD_LABEL_MARGIN) - bbox.y;
-          if (overlap > 0) finalY = l.y + overlap;
-        }
-        t.setAttribute('y', finalY);
-      }
+      const finalY = l.side === 'top'
+        ? initialY + ((VB_TOP + CORNER_MARGIN) - bbox.y)
+        : initialY + ((VB_BOTTOM - CORNER_MARGIN) - (bbox.y + bbox.height));
+      t.setAttribute('y', finalY);
 
-      const hitX = l.anchor === 'end' ? l.x - 184 : l.x - 16;
+      const hitX = l.anchor === 'end' ? x - 184 : x - 16;
       const hitRect = document.createElementNS(NS, 'rect');
       hitRect.setAttribute('x', hitX); hitRect.setAttribute('y', finalY - 28);
       hitRect.setAttribute('width', 200); hitRect.setAttribute('height', 74);
@@ -1120,19 +1116,53 @@
     return true;
   }
 
-  function buildFilterChipSet(container, options, activeSet, onToggle){
+  // ---- filtros cruzados (facetados): al activar un filtro, las opciones de
+  // los demás filtros que no tengan ningún caso en común quedan deshabilitadas
+  // (sin desaparecer, para que se entienda por qué no están disponibles). ----
+  const FACET_MATCHERS = {
+    olas: (c, k) => c.ola === k,
+    productos: (c, k) => c.producto === k,
+    segmentos: (c, k) => c.segmentos.includes(k),
+    quadrantes: (c, k) => c.quadrante === k,
+  };
+  const EMPTY_SET = new Set();
+
+  function facetOptionCount(pool, filters, facetName, key, weightFn){
+    const base = {
+      search: filters.search,
+      olas: facetName === 'olas' ? EMPTY_SET : filters.olas,
+      productos: facetName === 'productos' ? EMPTY_SET : filters.productos,
+      segmentos: facetName === 'segmentos' ? EMPTY_SET : (filters.segmentos || EMPTY_SET),
+      quadrantes: facetName === 'quadrantes' ? EMPTY_SET : (filters.quadrantes || EMPTY_SET),
+    };
+    const matcher = FACET_MATCHERS[facetName];
+    let n = 0;
+    for (let i = 0; i < pool.length; i++) {
+      const item = pool[i];
+      if (matcher(item, key) && casoPassesFilters(item, base)) n += weightFn ? weightFn(item) : 1;
+    }
+    return n;
+  }
+
+  function buildFacetChipSet(container, pool, filters, facetName, options, onRebuild, weightFn){
+    const activeSet = filters[facetName];
     container.innerHTML = '';
     options.forEach(opt => {
+      const count = facetOptionCount(pool, filters, facetName, opt.key, weightFn);
+      const isActive = activeSet.has(opt.key);
+      const disabled = count === 0 && !isActive;
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = 'segment-chip' + (activeSet.has(opt.key) ? ' is-active' : '');
+      chip.className = 'segment-chip' + (isActive ? ' is-active' : '') + (disabled ? ' is-disabled' : '');
       chip.dataset.key = opt.key;
-      chip.innerHTML = opt.html;
-      chip.addEventListener('click', () => {
-        if (activeSet.has(opt.key)) activeSet.delete(opt.key); else activeSet.add(opt.key);
-        chip.classList.toggle('is-active');
-        onToggle();
-      });
+      chip.disabled = disabled;
+      chip.innerHTML = opt.label + ' (' + count + ')';
+      if (!disabled) {
+        chip.addEventListener('click', () => {
+          if (activeSet.has(opt.key)) activeSet.delete(opt.key); else activeSet.add(opt.key);
+          onRebuild();
+        });
+      }
       container.appendChild(chip);
     });
   }
@@ -1144,45 +1174,38 @@
     });
   }
 
-  function olaChipOptions(){
-    const counts = {};
-    CASOS.forEach(c => { counts[c.ola] = (counts[c.ola] || 0) + 1; });
-    const maxOla = CASOS.reduce((m, c) => Math.max(m, c.ola), 0);
-    const opts = [];
-    for (let i = 0; i <= maxOla; i++) {
-      if (!counts[i]) continue;
-      opts.push({ key: i, html: 'Ola ' + i + ' (' + counts[i] + ')' });
-    }
-    return opts;
+  function olaFacetOptions(){
+    const seen = new Set();
+    CASOS.forEach(c => seen.add(c.ola));
+    return [...seen].sort((a, b) => a - b).map(key => ({ key, label: 'Ola ' + key }));
   }
-  function productoChipOptions(){
-    const counts = {};
-    CASOS.forEach(c => { counts[c.producto] = (counts[c.producto] || 0) + 1; });
-    return Object.keys(PRODUCTOS_META).filter(k => counts[k]).map(key => ({
+  function productoFacetOptions(){
+    const present = new Set(CASOS.map(c => c.producto));
+    return Object.keys(PRODUCTOS_META).filter(k => present.has(k)).map(key => ({
       key,
-      html: '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + PRODUCTOS[key].color + '"></span>' +
-        escapeHtml(PRODUCTOS[key].name) + ' (' + counts[key] + ')',
+      label: '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + PRODUCTOS[key].color + '"></span>' +
+        escapeHtml(PRODUCTOS[key].name),
     }));
   }
-  function segmentoChipOptions(){
-    const counts = {};
-    CASOS.forEach(c => c.segmentos.forEach(s => { counts[s] = (counts[s] || 0) + 1; }));
-    return Object.keys(counts).map(key => ({ key, html: escapeHtml(key) + ' (' + counts[key] + ')' }));
+  function segmentoFacetOptions(){
+    const present = new Set();
+    CASOS.forEach(c => c.segmentos.forEach(s => present.add(s)));
+    return [...present].map(key => ({ key, label: escapeHtml(key) }));
   }
-  function quadranteChipOptions(){
-    const counts = {};
-    CASOS.forEach(c => { counts[c.quadrante] = (counts[c.quadrante] || 0) + 1; });
-    return Object.keys(QUADRANTES).filter(k => counts[k]).map(key => ({
+  function quadranteFacetOptions(){
+    const present = new Set(CASOS.map(c => c.quadrante));
+    return Object.keys(QUADRANTES).filter(k => present.has(k)).map(key => ({
       key,
-      html: escapeHtml(QUADRANTES[key].label) + ' · ' + escapeHtml(QUADRANTES[key].nombre) + ' (' + counts[key] + ')',
+      label: escapeHtml(QUADRANTES[key].label) + ' · ' + escapeHtml(QUADRANTES[key].nombre),
     }));
   }
 
   function buildRadarFilterChips(){
-    buildFilterChipSet(document.getElementById('radarOlaChips'), olaChipOptions(), radarFilters.olas, applyFilter);
-    buildFilterChipSet(document.getElementById('radarProductoChips'), productoChipOptions(), radarFilters.productos, applyFilter);
-    buildFilterChipSet(document.getElementById('radarSegmentChips'), segmentoChipOptions(), radarFilters.segmentos, applyFilter);
-    buildFilterChipSet(document.getElementById('radarQuadranteChips'), quadranteChipOptions(), radarFilters.quadrantes, applyFilter);
+    const rebuild = () => { buildRadarFilterChips(); applyFilter(); };
+    buildFacetChipSet(document.getElementById('radarOlaChips'), CASOS, radarFilters, 'olas', olaFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('radarProductoChips'), CASOS, radarFilters, 'productos', productoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('radarSegmentChips'), CASOS, radarFilters, 'segmentos', segmentoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('radarQuadranteChips'), CASOS, radarFilters, 'quadrantes', quadranteFacetOptions(), rebuild);
   }
 
   // ---- vista "Catálogo": grid de tarjetas con todos los filtros ----------
@@ -1190,10 +1213,11 @@
   let catalogFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
 
   function buildCatalogFilterChips(){
-    buildFilterChipSet(document.getElementById('catalogOlaChips'), olaChipOptions(), catalogFilters.olas, buildCatalogGrid);
-    buildFilterChipSet(document.getElementById('catalogProductoChips'), productoChipOptions(), catalogFilters.productos, buildCatalogGrid);
-    buildFilterChipSet(document.getElementById('catalogSegmentChips'), segmentoChipOptions(), catalogFilters.segmentos, buildCatalogGrid);
-    buildFilterChipSet(document.getElementById('catalogQuadranteChips'), quadranteChipOptions(), catalogFilters.quadrantes, buildCatalogGrid);
+    const rebuild = () => { buildCatalogFilterChips(); buildCatalogGrid(); };
+    buildFacetChipSet(document.getElementById('catalogOlaChips'), CASOS, catalogFilters, 'olas', olaFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('catalogProductoChips'), CASOS, catalogFilters, 'productos', productoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('catalogSegmentChips'), CASOS, catalogFilters, 'segmentos', segmentoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('catalogQuadranteChips'), CASOS, catalogFilters, 'quadrantes', quadranteFacetOptions(), rebuild);
   }
 
   function buildCatalogGrid(){
@@ -1329,59 +1353,10 @@
 
   function buildJobsFilterChips(){
     const flatAll = getFlatCasos();
-    const olaCounts = {};
-    flatAll.forEach(c => { olaCounts[c.ola] = (olaCounts[c.ola] || 0) + (c.jobs.length || 1); });
-    const maxOla = flatAll.reduce((m, c) => Math.max(m, c.ola), 0);
-
-    const olaList = document.getElementById('jobsOlaChips');
-    olaList.innerHTML = '';
-    for (let i = 0; i <= maxOla; i++) {
-      if (!olaCounts[i]) continue;
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'segment-chip' + (jobsFilters.olas.has(i) ? ' is-active' : '');
-      chip.textContent = 'Ola ' + i + ' (' + olaCounts[i] + ')';
-      chip.addEventListener('click', () => {
-        if (jobsFilters.olas.has(i)) jobsFilters.olas.delete(i); else jobsFilters.olas.add(i);
-        buildJobsView();
-      });
-      olaList.appendChild(chip);
-    }
-
-    const prodCounts = {};
-    flatAll.forEach(c => { prodCounts[c.producto] = (prodCounts[c.producto] || 0) + (c.jobs.length || 1); });
-    const prodList = document.getElementById('jobsProductoChips');
-    prodList.innerHTML = '';
-    Object.keys(PRODUCTOS_META).forEach(key => {
-      if (!prodCounts[key]) return;
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'segment-chip' + (jobsFilters.productos.has(key) ? ' is-active' : '');
-      chip.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + PRODUCTOS[key].color + '"></span>' +
-        escapeHtml(PRODUCTOS[key].name) + ' (' + prodCounts[key] + ')';
-      chip.addEventListener('click', () => {
-        if (jobsFilters.productos.has(key)) jobsFilters.productos.delete(key); else jobsFilters.productos.add(key);
-        buildJobsView();
-      });
-      prodList.appendChild(chip);
-    });
-
-    const quadCounts = {};
-    flatAll.forEach(c => { quadCounts[c.quadrante] = (quadCounts[c.quadrante] || 0) + (c.jobs.length || 1); });
-    const quadList = document.getElementById('jobsQuadranteChips');
-    quadList.innerHTML = '';
-    Object.keys(QUADRANTES).forEach(key => {
-      if (!quadCounts[key]) return;
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'segment-chip' + (jobsFilters.quadrantes.has(key) ? ' is-active' : '');
-      chip.textContent = QUADRANTES[key].label + ' · ' + QUADRANTES[key].nombre + ' (' + quadCounts[key] + ')';
-      chip.addEventListener('click', () => {
-        if (jobsFilters.quadrantes.has(key)) jobsFilters.quadrantes.delete(key); else jobsFilters.quadrantes.add(key);
-        buildJobsView();
-      });
-      quadList.appendChild(chip);
-    });
+    const weightByJobs = c => c.jobs.length || 1;
+    buildFacetChipSet(document.getElementById('jobsOlaChips'), flatAll, jobsFilters, 'olas', olaFacetOptions(), buildJobsView, weightByJobs);
+    buildFacetChipSet(document.getElementById('jobsProductoChips'), flatAll, jobsFilters, 'productos', productoFacetOptions(), buildJobsView, weightByJobs);
+    buildFacetChipSet(document.getElementById('jobsQuadranteChips'), flatAll, jobsFilters, 'quadrantes', quadranteFacetOptions(), buildJobsView, weightByJobs);
   }
 
   function showDefaultJobsResults(flat){
@@ -1604,7 +1579,7 @@
   document.getElementById('radarSearch').addEventListener('input', (e) => {
     const value = e.target.value;
     clearTimeout(radarSearchTimer);
-    radarSearchTimer = setTimeout(() => { radarFilters.search = value; applyFilter(); }, 150);
+    radarSearchTimer = setTimeout(() => { radarFilters.search = value; buildRadarFilterChips(); applyFilter(); }, 150);
   });
   document.getElementById('radarFiltersClear').addEventListener('click', () => {
     radarFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
@@ -1634,7 +1609,7 @@
   document.getElementById('catalogSearch').addEventListener('input', (e) => {
     const value = e.target.value;
     clearTimeout(catalogSearchTimer);
-    catalogSearchTimer = setTimeout(() => { catalogFilters.search = value; buildCatalogGrid(); }, 150);
+    catalogSearchTimer = setTimeout(() => { catalogFilters.search = value; buildCatalogFilterChips(); buildCatalogGrid(); }, 150);
   });
   document.getElementById('catalogFiltersClear').addEventListener('click', () => {
     catalogFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
