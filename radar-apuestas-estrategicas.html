@@ -85,10 +85,11 @@
     padding:9px 16px; outline:none; transition:border-color .15s ease, background .15s ease;
   }
   .filter-search-input:focus{ border-color:var(--accent); background:#fff; }
-  .filter-group{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .filter-columns{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:18px 24px; align-items:start; }
+  .filter-group{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-width:0; }
   .filter-label{ font-size:12.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--label-muted); flex-shrink:0; }
-  .filter-chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
-  .filter-chip-row .segment-chip{ padding:5px 12px; font-size:13.5px; }
+  .filter-chip-row{ display:flex; flex-direction:column; align-items:stretch; gap:6px; width:100%; }
+  .filter-chip-row .segment-chip{ padding:6px 12px; font-size:13.5px; text-align:left; width:100%; }
   .filter-clear{
     align-self:flex-end;
     font-family:inherit; font-size:13.5px; font-weight:600; color:var(--ink-muted);
@@ -147,7 +148,7 @@
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28'><path d='M28 0H0V28' fill='none' stroke='%23D6D3EC' stroke-width='1' stroke-dasharray='1.6 4'/></svg>");
     background-size:28px 28px;
     pointer-events:none;
-    z-index:0;
+    z-index:-1;
   }
   .radar-canvas{ position:relative; z-index:1; flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; }
   .radar-tooltip{
@@ -320,21 +321,23 @@
       <div class="filter-panel-body">
         <div class="filter-bar">
           <input type="search" id="radarSearch" class="filter-search-input" placeholder="Buscar por caso o job to be done…">
-          <div class="filter-group">
-            <span class="filter-label">Ola</span>
-            <div id="radarOlaChips" class="filter-chip-row"></div>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Producto</span>
-            <div id="radarProductoChips" class="filter-chip-row"></div>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Segmento</span>
-            <div id="radarSegmentChips" class="filter-chip-row"></div>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Apuesta estratégica</span>
-            <div id="radarQuadranteChips" class="filter-chip-row"></div>
+          <div class="filter-columns">
+            <div class="filter-group">
+              <span class="filter-label">Ola</span>
+              <div id="radarOlaChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Producto</span>
+              <div id="radarProductoChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Segmento</span>
+              <div id="radarSegmentChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Apuesta estratégica</span>
+              <div id="radarQuadranteChips" class="filter-chip-row"></div>
+            </div>
           </div>
           <button type="button" id="radarFiltersClear" class="filter-clear">Limpiar filtros</button>
         </div>
@@ -352,21 +355,28 @@
   <div id="viewJobs" class="view-panel" hidden>
     <div class="layout">
       <div class="radar-card jobs-card">
-        <div class="filter-bar">
-          <input type="search" id="jobsSearch" class="filter-search-input" placeholder="Buscar por caso o job to be done…">
-          <div class="filter-group">
-            <span class="filter-label">Ola</span>
-            <div id="jobsOlaChips" class="filter-chip-row"></div>
+        <div class="filter-panel" id="jobsFilterPanel">
+          <button type="button" class="filter-panel-toggle" id="jobsFilterToggle" aria-expanded="true">Ocultar filtros</button>
+          <div class="filter-panel-body">
+            <div class="filter-bar">
+              <input type="search" id="jobsSearch" class="filter-search-input" placeholder="Buscar por caso o job to be done…">
+              <div class="filter-columns">
+                <div class="filter-group">
+                  <span class="filter-label">Ola</span>
+                  <div id="jobsOlaChips" class="filter-chip-row"></div>
+                </div>
+                <div class="filter-group">
+                  <span class="filter-label">Producto</span>
+                  <div id="jobsProductoChips" class="filter-chip-row"></div>
+                </div>
+                <div class="filter-group">
+                  <span class="filter-label">Apuesta estratégica</span>
+                  <div id="jobsQuadranteChips" class="filter-chip-row"></div>
+                </div>
+              </div>
+              <button type="button" id="jobsFiltersClear" class="filter-clear">Limpiar filtros</button>
+            </div>
           </div>
-          <div class="filter-group">
-            <span class="filter-label">Producto</span>
-            <div id="jobsProductoChips" class="filter-chip-row"></div>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Apuesta estratégica</span>
-            <div id="jobsQuadranteChips" class="filter-chip-row"></div>
-          </div>
-          <button type="button" id="jobsFiltersClear" class="filter-clear">Limpiar filtros</button>
         </div>
         <svg id="jobsGraph" viewBox="0 0 760 640" role="img" aria-label="Conexiones entre segmentos y jobs to be done, agrupadas por producto"></svg>
         <p class="radar-caption">Cada línea conecta un segmento con un producto a través de sus jobs to be done; el grosor indica cuántos jobs los conectan (según los filtros activos). Pasa el mouse para resaltar, haz clic para ver el detalle de los casos y jobs involucrados.</p>
@@ -387,21 +397,23 @@
       <div class="filter-panel-body">
         <div class="filter-bar">
           <input type="search" id="catalogSearch" class="filter-search-input" placeholder="Buscar por caso o job to be done…">
-          <div class="filter-group">
-            <span class="filter-label">Ola</span>
-            <div id="catalogOlaChips" class="filter-chip-row"></div>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Producto</span>
-            <div id="catalogProductoChips" class="filter-chip-row"></div>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Segmento</span>
-            <div id="catalogSegmentChips" class="filter-chip-row"></div>
-          </div>
-          <div class="filter-group">
-            <span class="filter-label">Apuesta estratégica</span>
-            <div id="catalogQuadranteChips" class="filter-chip-row"></div>
+          <div class="filter-columns">
+            <div class="filter-group">
+              <span class="filter-label">Ola</span>
+              <div id="catalogOlaChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Producto</span>
+              <div id="catalogProductoChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Segmento</span>
+              <div id="catalogSegmentChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Apuesta estratégica</span>
+              <div id="catalogQuadranteChips" class="filter-chip-row"></div>
+            </div>
           </div>
           <button type="button" id="catalogFiltersClear" class="filter-clear">Limpiar filtros</button>
         </div>
@@ -1289,6 +1301,12 @@
   // ---- vista "Segmentos × Jobs to be done" --------------------------------
 
   let JOBS_LINKS = [];
+  let JOBS_FLAT = [];
+  // selección persistente del diagrama: clic en un segmento y clic en un
+  // producto se combinan (cada uno se recuerda hasta que se vuelva a
+  // hacer clic sobre él o se limpie), en vez de que el segundo clic
+  // reemplace al primero.
+  let jobsSelection = { segmento: null, producto: null };
   const jobsGraphSvg = document.getElementById('jobsGraph');
   let jobsFilters = { search: '', olas: new Set(), productos: new Set(), quadrantes: new Set() };
 
@@ -1359,13 +1377,32 @@
     buildFacetChipSet(document.getElementById('jobsQuadranteChips'), flatAll, jobsFilters, 'quadrantes', quadranteFacetOptions(), buildJobsView, weightByJobs);
   }
 
+  // Arma un título que deja ver, de un vistazo, TODO lo que está activo:
+  // los filtros de arriba (búsqueda, Ola, Producto, Apuesta estratégica) y,
+  // si hay, la selección hecha con clic dentro del propio diagrama.
+  function buildJobsResultTitle(){
+    const bits = [];
+    if (jobsFilters.search.trim()) bits.push('"' + jobsFilters.search.trim() + '"');
+    if (jobsFilters.olas.size) bits.push('Ola ' + [...jobsFilters.olas].sort((a, b) => a - b).join(', '));
+    if (jobsFilters.productos.size) bits.push([...jobsFilters.productos].map(k => PRODUCTOS[k].name).join(', '));
+    if (jobsFilters.quadrantes.size) bits.push([...jobsFilters.quadrantes].map(k => QUADRANTES[k].label).join(', '));
+    if (jobsSelection.segmento && jobsSelection.producto) {
+      bits.push(jobsSelection.segmento + ' → ' + PRODUCTOS[jobsSelection.producto].name);
+    } else if (jobsSelection.segmento) {
+      bits.push(jobsSelection.segmento);
+    } else if (jobsSelection.producto) {
+      bits.push(PRODUCTOS[jobsSelection.producto].name);
+    }
+    return bits.length ? bits.join(' · ') : 'Resultados';
+  }
+
   function showDefaultJobsResults(flat){
     const totalJobs = flat.reduce((n, c) => n + (c.jobs.length || 1), 0);
     const hasFilters = jobsFilters.search.trim() || jobsFilters.olas.size || jobsFilters.productos.size || jobsFilters.quadrantes.size;
     const hint = flat.length
       ? flat.length + ' casos · ' + totalJobs + ' jobs to be done' + (hasFilters ? ' coinciden con los filtros actuales.' : ' en total.')
       : 'Ningún caso coincide con la búsqueda o los filtros actuales.';
-    showJobsDrilldown('Resultados', hint, flat);
+    showJobsDrilldown(buildJobsResultTitle(), hint, flat);
   }
 
   function buildJobsView(){
@@ -1374,6 +1411,8 @@
     if (!CASOS.length) return;
 
     const flat = getFilteredFlatCasos();
+    JOBS_FLAT = flat;
+    jobsSelection = { segmento: null, producto: null };
     const { links, segTotals, prodTotals } = computeSegmentoProductoLinks(flat);
     JOBS_LINKS = links;
 
@@ -1403,11 +1442,16 @@
       path.dataset.seg = l.segmento;
       path.dataset.prod = l.producto;
       path.addEventListener('mouseenter', () => setJobsHighlight(l.segmento, l.producto));
-      path.addEventListener('mouseleave', () => clearJobsHighlight());
+      path.addEventListener('mouseleave', () => applyJobsSelectionHighlight());
       path.addEventListener('click', (e) => {
         e.stopPropagation();
-        showJobsDrilldown(l.segmento + ' → ' + PRODUCTOS[l.producto].name,
-          l.count + ' jobs to be done conectan este segmento con este producto.', l.casos);
+        if (jobsSelection.segmento === l.segmento && jobsSelection.producto === l.producto) {
+          jobsSelection.segmento = null; jobsSelection.producto = null;
+        } else {
+          jobsSelection.segmento = l.segmento;
+          jobsSelection.producto = l.producto;
+        }
+        renderJobsSelection();
       });
       jobsGraphSvg.appendChild(path);
     });
@@ -1444,13 +1488,15 @@
 
         g.appendChild(rect); g.appendChild(label); g.appendChild(count);
         const activate = () => {
-          const casos = kind === 'segmento'
-            ? JOBS_LINKS.filter(l => l.segmento === n.key).flatMap(l => l.casos)
-            : JOBS_LINKS.filter(l => l.producto === n.key).flatMap(l => l.casos);
-          showJobsDrilldown(n.label, n.total + ' jobs to be done asociados.', casos);
+          if (kind === 'segmento') {
+            jobsSelection.segmento = jobsSelection.segmento === n.key ? null : n.key;
+          } else {
+            jobsSelection.producto = jobsSelection.producto === n.key ? null : n.key;
+          }
+          renderJobsSelection();
         };
         g.addEventListener('mouseenter', () => setJobsHighlight(kind === 'segmento' ? n.key : null, kind === 'producto' ? n.key : null));
-        g.addEventListener('mouseleave', () => clearJobsHighlight());
+        g.addEventListener('mouseleave', () => applyJobsSelectionHighlight());
         g.addEventListener('click', (e) => { e.stopPropagation(); activate(); });
         g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
         jobsGraphSvg.appendChild(g);
@@ -1459,9 +1505,47 @@
     drawNodeGroup(segNodes, 'segmento', 'start');
     drawNodeGroup(prodNodes, 'producto', 'end');
 
-    jobsGraphSvg.addEventListener('click', (e) => { if (e.target === jobsGraphSvg) clearJobsHighlight(); });
+    jobsGraphSvg.addEventListener('click', (e) => {
+      if (e.target !== jobsGraphSvg) return;
+      jobsSelection = { segmento: null, producto: null };
+      renderJobsSelection();
+    });
 
-    showDefaultJobsResults(flat);
+    renderJobsSelection();
+  }
+
+  function applyJobsSelectionHighlight(){
+    setJobsHighlight(jobsSelection.segmento, jobsSelection.producto);
+  }
+
+  // Refleja jobsSelection (segmento y/o producto elegidos con clic, que se
+  // combinan entre sí) tanto en el resaltado del diagrama como en el panel
+  // de detalle de la derecha.
+  function renderJobsSelection(){
+    applyJobsSelectionHighlight();
+    const { segmento, producto } = jobsSelection;
+    const title = buildJobsResultTitle();
+    if (!segmento && !producto) { showDefaultJobsResults(JOBS_FLAT); return; }
+    if (segmento && producto) {
+      const link = JOBS_LINKS.find(l => l.segmento === segmento && l.producto === producto);
+      const casos = link ? link.casos : [];
+      const hint = casos.length
+        ? link.count + ' jobs to be done conectan este segmento con este producto.'
+        : 'Ningún job to be done conecta este segmento con este producto.';
+      showJobsDrilldown(title, hint, casos);
+      return;
+    }
+    if (segmento) {
+      const matching = JOBS_LINKS.filter(l => l.segmento === segmento);
+      const casos = matching.flatMap(l => l.casos);
+      const total = matching.reduce((n, l) => n + l.count, 0);
+      showJobsDrilldown(title, total + ' jobs to be done asociados. Elige también un producto para acotar más.', casos);
+      return;
+    }
+    const matching = JOBS_LINKS.filter(l => l.producto === producto);
+    const casos = matching.flatMap(l => l.casos);
+    const total = matching.reduce((n, l) => n + l.count, 0);
+    showJobsDrilldown(title, total + ' jobs to be done asociados. Elige también un segmento para acotar más.', casos);
   }
 
   function setJobsHighlight(segKey, prodKey){
@@ -1481,9 +1565,6 @@
       }
       el.classList.toggle('is-dim', active && !relevant);
     });
-  }
-  function clearJobsHighlight(){
-    jobsGraphSvg.querySelectorAll('.jobs-link, .jobs-node-rect').forEach(el => el.classList.remove('is-dim', 'is-hot'));
   }
 
   function showJobsDrilldown(title, hint, casos){
@@ -1604,6 +1685,7 @@
   }
   wireFilterPanelToggle('radarFilterPanel', 'radarFilterToggle');
   wireFilterPanelToggle('catalogFilterPanel', 'catalogFilterToggle');
+  wireFilterPanelToggle('jobsFilterPanel', 'jobsFilterToggle');
 
   let catalogSearchTimer = null;
   document.getElementById('catalogSearch').addEventListener('input', (e) => {
