@@ -1484,6 +1484,7 @@
         count.setAttribute('y', n.cy + 13);
         count.setAttribute('text-anchor', anchor);
         count.setAttribute('class', 'jobs-node-count');
+        count.dataset.key = n.key; count.dataset.kind = kind;
         count.textContent = n.total + ' jobs';
 
         g.appendChild(rect); g.appendChild(label); g.appendChild(count);
@@ -1514,8 +1515,25 @@
     renderJobsSelection();
   }
 
+  // Cuenta, para un nodo dado, cuántos jobs le corresponden teniendo en
+  // cuenta la selección vigente en el OTRO lado del diagrama (un segmento
+  // seleccionado acota los números de los productos, y viceversa). Sin
+  // selección, equivale al total normal del nodo.
+  function liveNodeCount(kind, key){
+    const matching = kind === 'segmento'
+      ? JOBS_LINKS.filter(l => l.segmento === key && (!jobsSelection.producto || l.producto === jobsSelection.producto))
+      : JOBS_LINKS.filter(l => l.producto === key && (!jobsSelection.segmento || l.segmento === jobsSelection.segmento));
+    return matching.reduce((n, l) => n + l.count, 0);
+  }
+  function updateJobsNodeCounts(){
+    jobsGraphSvg.querySelectorAll('.jobs-node-count').forEach(el => {
+      el.textContent = liveNodeCount(el.dataset.kind, el.dataset.key) + ' jobs';
+    });
+  }
+
   function applyJobsSelectionHighlight(){
     setJobsHighlight(jobsSelection.segmento, jobsSelection.producto);
+    updateJobsNodeCounts();
   }
 
   // Refleja jobsSelection (segmento y/o producto elegidos con clic, que se
