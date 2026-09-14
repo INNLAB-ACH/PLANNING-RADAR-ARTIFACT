@@ -2499,21 +2499,7 @@
     }
   }
 
-  (async () => {
-    setStatus('Buscando "' + XLSX_FILENAME + '" junto a este archivo…');
-    const buf = await tryAutoFetch();
-    if (buf && applyWorkbookBuffer(buf, XLSX_FILENAME, true)) return;
-
-    let cached = null;
-    try { cached = localStorage.getItem(XLSX_CACHE_KEY); } catch (e) {}
-    if (cached) {
-      try {
-        if (applyWorkbookBuffer(base64ToArrayBuffer(cached), 'la última carga guardada en este navegador', false)) return;
-      } catch (e) {}
-    }
-
-    setStatus('No se pudo leer el Excel automáticamente (normal si abriste este archivo con doble clic desde el explorador). Usa "Cargar / actualizar Excel" y selecciona "' + XLSX_FILENAME + '".', 'is-error');
-  })();
+  setStatus('Selecciona "' + XLSX_FILENAME + '" con "Cargar / actualizar Excel" para comenzar.');
 </script>
 </body>
 </html>
