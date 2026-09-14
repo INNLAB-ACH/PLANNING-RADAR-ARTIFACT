@@ -129,6 +129,73 @@
   .catalog-card-seg-chip{ font-size:12.5px; background:var(--hover-bg); color:var(--ink); border-radius:999px; padding:3px 9px; }
   .catalog-empty{ grid-column:1/-1; padding:50px 20px; text-align:center; color:var(--ink-muted); font-size:16px; }
 
+  .segment-jobs-count{ font-size:14.5px; color:var(--ink-muted); margin:0 0 16px; }
+  .segment-jobs-list{ display:flex; flex-direction:column; gap:16px; }
+  .segment-jobs-group{ background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:20px 22px; }
+  .segment-jobs-group-header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .segment-jobs-group-title{ margin:0; font-size:20px; font-weight:700; color:var(--ink); }
+  .segment-jobs-group-meta{ font-size:13px; color:var(--ink-muted); white-space:nowrap; }
+  .segment-jobs-items{ display:flex; flex-direction:column; gap:10px; }
+  .segment-jobs-item{ display:grid; grid-template-columns:minmax(220px,1.2fr) minmax(180px,1fr) auto; gap:14px; align-items:start; padding:12px 0; border-top:1px solid var(--card-border); }
+  .segment-jobs-item:first-child{ border-top:none; padding-top:0; }
+  .segment-jobs-job{ font-size:15px; line-height:1.45; color:var(--ink); font-weight:600; }
+  .segment-jobs-cases{ display:flex; flex-direction:column; gap:5px; }
+  .segment-jobs-case{ border:none; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; font-size:13.5px; text-align:left; line-height:1.35; }
+  .segment-jobs-case:hover{ text-decoration:underline; }
+  .segment-jobs-products{ display:flex; flex-wrap:wrap; gap:5px; justify-content:flex-end; }
+  .segment-jobs-product{ border-radius:999px; padding:3px 9px; background:var(--hover-bg); color:var(--ink-muted); font-size:12px; white-space:nowrap; }
+  .segment-jobs-empty{ background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:50px 20px; text-align:center; color:var(--ink-muted); font-size:16px; }
+  .meta-jobs-note{ font-size:14px; color:var(--ink-muted); line-height:1.5; margin:0 0 16px; }
+  .meta-jobs-list{ display:flex; flex-direction:column; gap:16px; }
+  .meta-jobs-group{ background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:20px 22px; }
+  .meta-jobs-group-header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .meta-jobs-group-title{ margin:0; font-size:20px; font-weight:700; color:var(--ink); }
+  .meta-jobs-group-meta{ font-size:13px; color:var(--ink-muted); white-space:nowrap; }
+  .meta-jobs-items{ display:flex; flex-direction:column; gap:10px; }
+  .meta-job-item{ border-top:1px solid var(--card-border); padding:12px 0 0; }
+  .meta-job-item:first-child{ border-top:none; padding-top:0; }
+  .meta-job-summary{ display:flex; align-items:baseline; justify-content:space-between; gap:14px; cursor:pointer; }
+  .meta-job-title{ font-size:16px; line-height:1.4; color:var(--ink); font-weight:700; }
+  .meta-job-count{ font-size:12.5px; color:var(--accent); white-space:nowrap; }
+  .meta-job-summary::after{ content:'+'; color:var(--accent); font-size:20px; font-weight:400; line-height:1; order:3; }
+  .meta-job-item.is-open .meta-job-summary::after{ content:'−'; }
+  .meta-job-details{ display:none; padding:10px 0 2px 14px; border-left:2px solid var(--accent-soft); }
+  .meta-job-item.is-open .meta-job-details{ display:flex; flex-direction:column; gap:8px; }
+  .meta-job-original{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:start; }
+  .meta-job-original-text{ font-size:13.5px; line-height:1.45; color:var(--ink-muted); }
+  .meta-job-case{ border:none; padding:0; background:none; color:var(--accent); cursor:pointer; font:inherit; font-size:12.5px; text-align:right; line-height:1.35; }
+  .meta-job-case:hover{ text-decoration:underline; }
+  .meta-job-empty{ background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:50px 20px; text-align:center; color:var(--ink-muted); font-size:16px; }
+  .meta-jobs-graph-card{ margin-top:20px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:18px; padding:22px; overflow:hidden; }
+  .meta-jobs-graph-title{ margin:0 0 4px; font-size:18px; font-weight:700; color:var(--ink); }
+  .meta-jobs-graph-caption{ margin:0 0 14px; font-size:13.5px; color:var(--ink-muted); line-height:1.5; }
+  .meta-jobs-graph-wrap{ overflow-x:auto; }
+  #metaJobsGraph{ width:100%; min-width:760px; height:auto; display:block; }
+  .meta-graph-link{ fill:none; stroke:var(--card-border); cursor:pointer; transition:opacity .18s ease, stroke-width .18s ease; }
+  .meta-graph-link.is-dim{ opacity:.12; }
+  .meta-graph-link.is-hot{ opacity:.9; }
+  .meta-graph-node{ cursor:pointer; transition:opacity .18s ease; }
+  .meta-graph-node.is-dim{ opacity:.25; }
+  .meta-graph-node rect{ fill:var(--hover-bg); stroke:var(--card-border); }
+  .meta-graph-node.is-meta rect{ fill:var(--accent-soft); stroke:var(--accent); }
+  .meta-graph-node.is-product rect{ fill-opacity:.13; }
+  .meta-graph-node text{ font-family:'Red Hat Display',sans-serif; fill:var(--ink); pointer-events:none; }
+  .meta-graph-node-label{ font-size:13px; font-weight:600; }
+  .meta-graph-node-count{ font-size:11px; fill:var(--ink-muted) !important; }
+  .meta-graph-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; font-size:12.5px; color:var(--ink-muted); }
+  .meta-graph-legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .meta-graph-legend i{ width:9px; height:9px; border-radius:50%; display:inline-block; background:var(--hover-bg); border:1px solid var(--card-border); }
+  .meta-graph-legend .legend-meta{ background:var(--accent-soft); border-color:var(--accent); }
+  .meta-graph-legend .legend-product{ background:var(--ach-blue); border-color:var(--ach-blue); }
+  @media (max-width:760px){
+    .segment-jobs-item{ grid-template-columns:1fr; gap:8px; }
+    .segment-jobs-products{ justify-content:flex-start; }
+    .segment-jobs-group-header{ align-items:flex-start; flex-direction:column; gap:4px; }
+    .meta-jobs-group-header{ align-items:flex-start; flex-direction:column; gap:4px; }
+    .meta-job-original{ grid-template-columns:1fr; }
+    .meta-job-case{ text-align:left; }
+  }
+
   .radar-card{
     position:relative;
     display:flex; flex-direction:column;
@@ -306,6 +373,8 @@
   <div class="view-tabs">
     <button type="button" class="view-tab is-active" data-view="radar">Radar</button>
     <button type="button" class="view-tab" data-view="jobs">Segmentos × Jobs to be done</button>
+    <button type="button" class="view-tab" data-view="segmentJobs">Jobs por segmento</button>
+    <button type="button" class="view-tab" data-view="metaJobs">Meta-jobs experimental</button>
     <button type="button" class="view-tab" data-view="catalog">Catálogo</button>
   </div>
 
@@ -388,6 +457,79 @@
           <div id="jobsDrilldownList" class="jobs-drilldown-list"></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="viewSegmentJobs" class="view-panel" hidden>
+    <div class="filter-panel" id="segmentJobsFilterPanel">
+      <button type="button" class="filter-panel-toggle" id="segmentJobsFilterToggle" aria-expanded="true">Ocultar filtros</button>
+      <div class="filter-panel-body">
+        <div class="filter-bar">
+          <input type="search" id="segmentJobsSearch" class="filter-search-input" placeholder="Buscar por segmento, job, caso o producto…">
+          <div class="filter-columns">
+            <div class="filter-group">
+              <span class="filter-label">Ola</span>
+              <div id="segmentJobsOlaChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Producto</span>
+              <div id="segmentJobsProductoChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Segmento</span>
+              <div id="segmentJobsSegmentChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Apuesta estratégica</span>
+              <div id="segmentJobsQuadranteChips" class="filter-chip-row"></div>
+            </div>
+          </div>
+          <button type="button" id="segmentJobsFiltersClear" class="filter-clear">Limpiar búsqueda</button>
+        </div>
+      </div>
+    </div>
+    <p class="segment-jobs-count" id="segmentJobsCount"></p>
+    <div id="segmentJobsList" class="segment-jobs-list"></div>
+  </div>
+
+  <div id="viewMetaJobs" class="view-panel" hidden>
+    <div class="filter-panel" id="metaJobsFilterPanel">
+      <button type="button" class="filter-panel-toggle" id="metaJobsFilterToggle" aria-expanded="true">Ocultar filtros</button>
+      <div class="filter-panel-body">
+        <div class="filter-bar">
+          <input type="search" id="metaJobsSearch" class="filter-search-input" placeholder="Buscar por segmento, meta-job o job…">
+          <div class="filter-columns">
+            <div class="filter-group">
+              <span class="filter-label">Ola</span>
+              <div id="metaJobsOlaChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Producto</span>
+              <div id="metaJobsProductoChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Segmento</span>
+              <div id="metaJobsSegmentChips" class="filter-chip-row"></div>
+            </div>
+            <div class="filter-group">
+              <span class="filter-label">Apuesta estratégica</span>
+              <div id="metaJobsQuadranteChips" class="filter-chip-row"></div>
+            </div>
+          </div>
+          <button type="button" id="metaJobsFiltersClear" class="filter-clear">Limpiar filtros</button>
+        </div>
+      </div>
+    </div>
+    <p class="meta-jobs-note">Vista experimental: los meta-jobs son agrupaciones orientativas por intención. Expande cada uno para revisar los jobs originales del archivo y sus casos asociados.</p>
+    <p class="segment-jobs-count" id="metaJobsCount"></p>
+    <div id="metaJobsList" class="meta-jobs-list"></div>
+    <div class="meta-jobs-graph-card">
+      <h2 class="meta-jobs-graph-title">Mapa de conexiones</h2>
+      <p class="meta-jobs-graph-caption">Relación entre segmentos, meta-jobs y productos según los jobs originales visibles con los filtros actuales. El grosor representa la cantidad de jobs que soportan cada conexión.</p>
+      <div class="meta-jobs-graph-wrap">
+        <svg id="metaJobsGraph" viewBox="0 0 1100 680" role="img" aria-label="Conexiones entre segmentos, meta-jobs y productos"></svg>
+      </div>
+      <div class="meta-graph-legend"><span><i></i>Segmento</span><span><i class="legend-meta"></i>Meta-job</span><span><i class="legend-product"></i>Producto</span></div>
     </div>
   </div>
 
@@ -1585,6 +1727,359 @@
     });
   }
 
+  // ---- vista "Jobs por segmento": consolidación de jobs repetidos --------
+
+  let segmentJobsSearch = '';
+  let segmentJobsFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
+
+  function buildSegmentJobsFilterChips(){
+    const rebuild = () => { buildSegmentJobsFilterChips(); buildSegmentJobsView(); };
+    const flatAll = getFlatCasos();
+    buildFacetChipSet(document.getElementById('segmentJobsOlaChips'), flatAll, segmentJobsFilters, 'olas', olaFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('segmentJobsProductoChips'), flatAll, segmentJobsFilters, 'productos', productoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('segmentJobsSegmentChips'), flatAll, segmentJobsFilters, 'segmentos', segmentoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('segmentJobsQuadranteChips'), flatAll, segmentJobsFilters, 'quadrantes', quadranteFacetOptions(), rebuild);
+  }
+
+  function getFilteredSegmentJobsCasos(){
+    const term = normTxt(segmentJobsFilters.search.trim());
+    return getFlatCasos().filter(caso => {
+      if (segmentJobsFilters.segmentos.size && !caso.segmentos.some(s => segmentJobsFilters.segmentos.has(s))) return false;
+      if (segmentJobsFilters.olas.size && !segmentJobsFilters.olas.has(caso.ola)) return false;
+      if (segmentJobsFilters.productos.size && !segmentJobsFilters.productos.has(caso.producto)) return false;
+      if (segmentJobsFilters.quadrantes.size && !segmentJobsFilters.quadrantes.has(caso.quadrante)) return false;
+      if (term) {
+        const segmentos = caso.segmentos.join(' ');
+        const haystack = normTxt(segmentos + ' ' + caso.titulo + ' ' + caso.jobs.join(' ') + ' ' + PRODUCTOS[caso.producto].name);
+        if (!haystack.includes(term)) return false;
+      }
+      return true;
+    });
+  }
+
+  function buildSegmentJobsView(){
+    const list = document.getElementById('segmentJobsList');
+    const count = document.getElementById('segmentJobsCount');
+    list.innerHTML = '';
+    const groups = {};
+    let totalJobs = 0;
+
+    getFilteredSegmentJobsCasos().forEach(caso => {
+      const segmentos = segmentJobsFilters.segmentos.size
+        ? caso.segmentos.filter(segmento => segmentJobsFilters.segmentos.has(segmento))
+        : (caso.segmentos.length ? caso.segmentos : ['Sin segmento']);
+      segmentos.forEach(segmento => {
+        caso.jobs.forEach(job => {
+          const group = groups[segmento] || (groups[segmento] = {});
+          const key = job.trim().toLowerCase();
+          const item = group[key] || (group[key] = { job, casos: [] });
+          if (!item.casos.some(existing => existing.id === caso.id)) item.casos.push(caso);
+        });
+      });
+    });
+
+    const segments = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'es'));
+    segments.forEach(segmento => {
+      const jobs = Object.values(groups[segmento]).sort((a, b) => a.job.localeCompare(b.job, 'es'));
+      if (!jobs.length) return;
+      totalJobs += jobs.length;
+      const section = document.createElement('section');
+      section.className = 'segment-jobs-group';
+      section.innerHTML = '<div class="segment-jobs-group-header"><h2 class="segment-jobs-group-title">' + escapeHtml(segmento) + '</h2><span class="segment-jobs-group-meta">' + jobs.length + ' jobs consolidados</span></div>';
+      const items = document.createElement('div');
+      items.className = 'segment-jobs-items';
+      jobs.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'segment-jobs-item';
+        const cases = document.createElement('div');
+        cases.className = 'segment-jobs-cases';
+        item.casos.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es')).forEach(caso => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'segment-jobs-case';
+          button.textContent = caso.titulo;
+          button.addEventListener('click', () => selectCaso(caso.id));
+          cases.appendChild(button);
+        });
+        const products = [...new Set(item.casos.map(caso => PRODUCTOS[caso.producto].name))].sort((a, b) => a.localeCompare(b, 'es'));
+        row.innerHTML = '<div class="segment-jobs-job">' + escapeHtml(item.job) + '</div>';
+        row.appendChild(cases);
+        const productList = document.createElement('div');
+        productList.className = 'segment-jobs-products';
+        products.forEach(producto => {
+          const badge = document.createElement('span');
+          badge.className = 'segment-jobs-product';
+          badge.textContent = producto;
+          productList.appendChild(badge);
+        });
+        row.appendChild(productList);
+        items.appendChild(row);
+      });
+      section.appendChild(items);
+      list.appendChild(section);
+    });
+
+    count.textContent = segments.length
+      ? segments.length + ' segmentos · ' + totalJobs + ' jobs consolidados'
+      : 'Ningún job coincide con la búsqueda actual.';
+    if (!segments.length) list.innerHTML = '<div class="segment-jobs-empty">Ningún job coincide con la búsqueda actual.</div>';
+  }
+
+  const META_JOB_RULES = [
+    { title: 'Cobrar y recibir pagos', keywords: ['cobrar', 'cobro', 'recaudo', 'recibir pagos', 'recibir el pago', 'aceptar pagos', 'pagar usando'] },
+    { title: 'Pagar, transferir y dispersar fondos', keywords: ['pagar', 'pago', 'transferir', 'transferencia', 'dispers', 'abono', 'desembolso', 'girar'] },
+    { title: 'Administrar liquidez y obligaciones', keywords: ['liquidez', 'saldo', 'flujo', 'obligacion', 'factura', 'programar', 'presupuesto', 'ahorro', 'disponibilidad'] },
+    { title: 'Financiar y anticipar ingresos', keywords: ['financi', 'credito', 'crédito', 'factoring', 'anticipo', 'capital', 'bnpl', 'préstamo', 'prestamo'] },
+    { title: 'Consultar y entender información financiera', keywords: ['consultar', 'consulta', 'informacion', 'información', 'visualizar', 'consolidada', 'conciliar', 'concili', 'reporte', 'trazabilidad'] },
+    { title: 'Integrar y automatizar operaciones', keywords: ['integrar', 'integración', 'integracion', 'conectar', 'api', 'automatizar', 'automatización', 'orquestar', 'sincronizar'] },
+    { title: 'Proteger operaciones y cumplir controles', keywords: ['fraude', 'riesgo', 'seguridad', 'cumplimiento', 'validar', 'autenticar', 'identificar', 'bloquear', 'control'] },
+    { title: 'Gestionar productos, usuarios y accesos', keywords: ['gestionar', 'administrar', 'habilitar', 'configurar', 'usuario', 'cliente', 'suscrip', 'acceso', 'portal'] },
+    { title: 'Resolver novedades y excepciones', keywords: ['error', 'fall', 'rechaz', 'reintentar', 'reclamo', 'novedad', 'excepción', 'excepcion', 'revers', 'anular'] },
+  ];
+
+  function classifyMetaJob(job){
+    const text = normTxt(job);
+    const rule = META_JOB_RULES.find(candidate => candidate.keywords.some(keyword => text.includes(normTxt(keyword))));
+    return rule ? rule.title : 'Operar servicios financieros';
+  }
+
+  let metaJobsSearch = '';
+  let metaJobsFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
+
+  function buildMetaJobsFilterChips(){
+    const rebuild = () => { buildMetaJobsFilterChips(); buildMetaJobsView(); };
+    const flatAll = getFlatCasos();
+    buildFacetChipSet(document.getElementById('metaJobsOlaChips'), flatAll, metaJobsFilters, 'olas', olaFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('metaJobsProductoChips'), flatAll, metaJobsFilters, 'productos', productoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('metaJobsSegmentChips'), flatAll, metaJobsFilters, 'segmentos', segmentoFacetOptions(), rebuild);
+    buildFacetChipSet(document.getElementById('metaJobsQuadranteChips'), flatAll, metaJobsFilters, 'quadrantes', quadranteFacetOptions(), rebuild);
+  }
+
+  function getFilteredMetaJobsCasos(){
+    const term = normTxt(metaJobsFilters.search.trim());
+    return getFlatCasos().filter(caso => {
+      if (metaJobsFilters.segmentos.size && !caso.segmentos.some(s => metaJobsFilters.segmentos.has(s))) return false;
+      if (metaJobsFilters.olas.size && !metaJobsFilters.olas.has(caso.ola)) return false;
+      if (metaJobsFilters.productos.size && !metaJobsFilters.productos.has(caso.producto)) return false;
+      if (metaJobsFilters.quadrantes.size && !metaJobsFilters.quadrantes.has(caso.quadrante)) return false;
+      if (term) {
+        const haystack = normTxt(caso.segmentos.join(' ') + ' ' + caso.titulo + ' ' + caso.jobs.join(' ') + ' ' + caso.jobs.map(classifyMetaJob).join(' ') + ' ' + PRODUCTOS[caso.producto].name);
+        if (!haystack.includes(term)) return false;
+      }
+      return true;
+    });
+  }
+
+  function buildMetaJobsView(){
+    const list = document.getElementById('metaJobsList');
+    const count = document.getElementById('metaJobsCount');
+    list.innerHTML = '';
+    const groups = {};
+    let totalMetaJobs = 0;
+    let totalOriginalJobs = 0;
+
+    getFilteredMetaJobsCasos().forEach(caso => {
+      const segmentos = metaJobsFilters.segmentos.size
+        ? caso.segmentos.filter(segmento => metaJobsFilters.segmentos.has(segmento))
+        : (caso.segmentos.length ? caso.segmentos : ['Sin segmento']);
+      segmentos.forEach(segmento => {
+        caso.jobs.forEach(job => {
+          const metaTitle = classifyMetaJob(job);
+          const segmentGroup = groups[segmento] || (groups[segmento] = {});
+          const metaGroup = segmentGroup[metaTitle] || (segmentGroup[metaTitle] = {});
+          const key = job.trim().toLowerCase();
+          const item = metaGroup[key] || (metaGroup[key] = { job, casos: [] });
+          if (!item.casos.some(existing => existing.id === caso.id)) item.casos.push(caso);
+        });
+      });
+    });
+
+    const segments = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'es'));
+    segments.forEach(segmento => {
+      const metaGroups = Object.entries(groups[segmento]).sort((a, b) => a[0].localeCompare(b[0], 'es'));
+      if (!metaGroups.length) return;
+      totalMetaJobs += metaGroups.length;
+      const section = document.createElement('section');
+      section.className = 'meta-jobs-group';
+      section.innerHTML = '<div class="meta-jobs-group-header"><h2 class="meta-jobs-group-title">' + escapeHtml(segmento) + '</h2><span class="meta-jobs-group-meta">' + metaGroups.length + ' meta-jobs</span></div>';
+      const items = document.createElement('div');
+      items.className = 'meta-jobs-items';
+      metaGroups.forEach(([metaTitle, originalJobs]) => {
+        const entries = Object.values(originalJobs).sort((a, b) => a.job.localeCompare(b.job, 'es'));
+        totalOriginalJobs += entries.length;
+        const item = document.createElement('article');
+        item.className = 'meta-job-item';
+        const summary = document.createElement('div');
+        summary.className = 'meta-job-summary';
+        summary.innerHTML = '<span class="meta-job-title">' + escapeHtml(metaTitle) + '</span><span class="meta-job-count">' + entries.length + ' jobs originales</span>';
+        const details = document.createElement('div');
+        details.className = 'meta-job-details';
+        entries.forEach(entry => {
+          entry.casos.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es')).forEach(caso => {
+            const original = document.createElement('div');
+            original.className = 'meta-job-original';
+            original.innerHTML = '<span class="meta-job-original-text">' + escapeHtml(entry.job) + '</span>';
+            const caseButton = document.createElement('button');
+            caseButton.type = 'button';
+            caseButton.className = 'meta-job-case';
+            caseButton.textContent = caso.titulo;
+            caseButton.addEventListener('click', e => { e.stopPropagation(); selectCaso(caso.id); });
+            original.appendChild(caseButton);
+            details.appendChild(original);
+          });
+        });
+        summary.addEventListener('click', () => item.classList.toggle('is-open'));
+        item.appendChild(summary);
+        item.appendChild(details);
+        items.appendChild(item);
+      });
+      section.appendChild(items);
+      list.appendChild(section);
+    });
+
+    count.textContent = segments.length
+      ? segments.length + ' segmentos · ' + totalMetaJobs + ' meta-jobs · ' + totalOriginalJobs + ' jobs originales'
+      : 'Ningún job coincide con los filtros actuales.';
+    if (!segments.length) list.innerHTML = '<div class="meta-job-empty">Ningún job coincide con los filtros actuales.</div>';
+    buildMetaJobsGraph(getFilteredMetaJobsCasos());
+  }
+
+  function buildMetaJobsGraph(casos){
+    const svg = document.getElementById('metaJobsGraph');
+    svg.innerHTML = '';
+    if (!casos.length) {
+      svg.setAttribute('viewBox', '0 0 1100 180');
+      const empty = document.createElementNS(NS, 'text');
+      empty.setAttribute('x', '550'); empty.setAttribute('y', '92');
+      empty.setAttribute('text-anchor', 'middle'); empty.setAttribute('class', 'jobs-node-count');
+      empty.textContent = 'Sin conexiones para los filtros actuales';
+      svg.appendChild(empty);
+      return;
+    }
+
+    const segmentSet = new Set();
+    const metaSet = new Set();
+    const productSet = new Set();
+    const segmentMeta = {};
+    const metaProduct = {};
+    const segmentTotals = {};
+    const metaTotals = {};
+    const productTotals = {};
+
+    casos.forEach(caso => {
+      const segmentos = metaJobsFilters.segmentos.size
+        ? caso.segmentos.filter(segmento => metaJobsFilters.segmentos.has(segmento))
+        : (caso.segmentos.length ? caso.segmentos : ['Sin segmento']);
+      segmentos.forEach(segmento => {
+        segmentSet.add(segmento);
+        caso.jobs.forEach(job => {
+          const meta = classifyMetaJob(job);
+          const product = caso.producto;
+          const jobKey = caso.id + '|' + job.trim().toLowerCase();
+          const smKey = segmento + '|' + meta;
+          const mpKey = meta + '|' + product;
+          metaSet.add(meta); productSet.add(product);
+          if (!segmentMeta[smKey]) segmentMeta[smKey] = new Set();
+          if (!metaProduct[mpKey]) metaProduct[mpKey] = new Set();
+          segmentMeta[smKey].add(jobKey);
+          metaProduct[mpKey].add(jobKey);
+          segmentTotals[segmento] = (segmentTotals[segmento] || 0) + 1;
+          metaTotals[meta] = (metaTotals[meta] || 0) + 1;
+          productTotals[product] = (productTotals[product] || 0) + 1;
+        });
+      });
+    });
+
+    const height = Math.max(680, metaSet.size * 34 + 70);
+    svg.setAttribute('viewBox', '0 0 1100 ' + height);
+    const graphNodes = {};
+    const entriesFor = (set, totals, labels) => [...set].sort((a, b) => (labels[a] || a).localeCompare(labels[b] || b, 'es')).map(key => ({ key, label: labels[key] || key, total: totals[key] || 0 }));
+    const segmentEntries = entriesFor(segmentSet, segmentTotals, {});
+    const metaEntries = entriesFor(metaSet, metaTotals, {});
+    const productLabels = Object.fromEntries(Object.keys(PRODUCTOS).map(key => [key, PRODUCTOS[key].name]));
+    const productEntries = entriesFor(productSet, productTotals, productLabels);
+    const layout = (entries, x, width) => {
+      const gap = 8, nodeHeight = 28;
+      const total = entries.length * nodeHeight + Math.max(0, entries.length - 1) * gap;
+      let y = Math.max(24, (height - total) / 2);
+      return entries.map(entry => {
+        const node = { ...entry, x, y, width, height: nodeHeight, cy: y + nodeHeight / 2 };
+        y += nodeHeight + gap;
+        return node;
+      });
+    };
+    const segmentNodes = layout(segmentEntries, 20, 205);
+    const metaNodes = layout(metaEntries, 370, 340);
+    const productNodes = layout(productEntries, 875, 205);
+    segmentNodes.forEach(node => { graphNodes['segment|' + node.key] = node; });
+    metaNodes.forEach(node => { graphNodes['meta|' + node.key] = node; });
+    productNodes.forEach(node => { graphNodes['product|' + node.key] = node; });
+
+    const maxLink = Math.max(1, ...Object.values(segmentMeta).map(set => set.size), ...Object.values(metaProduct).map(set => set.size));
+    const drawLink = (from, to, count, kind) => {
+      const path = document.createElementNS(NS, 'path');
+      const x1 = from.x + from.width, x2 = to.x;
+      const mx = (x1 + x2) / 2;
+      path.setAttribute('d', 'M' + x1 + ',' + from.cy + ' C' + mx + ',' + from.cy + ' ' + mx + ',' + to.cy + ' ' + x2 + ',' + to.cy);
+      path.setAttribute('class', 'meta-graph-link');
+      path.setAttribute('stroke-width', Math.max(1.2, Math.min(10, 1 + Math.sqrt(count / maxLink) * 9)));
+      path.setAttribute('stroke-opacity', '.45');
+      path.dataset.from = from.key;
+      path.dataset.to = to.key;
+      path.dataset.kind = kind;
+      path.addEventListener('mouseenter', () => highlightMetaGraph(kind, from.key, to.key));
+      path.addEventListener('mouseleave', () => clearMetaGraphHighlight());
+      svg.appendChild(path);
+    };
+    Object.entries(segmentMeta).forEach(([key, values]) => {
+      const [segmento, meta] = key.split('|');
+      drawLink(graphNodes['segment|' + segmento], graphNodes['meta|' + meta], values.size, 'segment-meta');
+    });
+    Object.entries(metaProduct).forEach(([key, values]) => {
+      const [meta, product] = key.split('|');
+      drawLink(graphNodes['meta|' + meta], graphNodes['product|' + product], values.size, 'meta-product');
+    });
+
+    const drawNodes = (nodes, kind) => nodes.forEach(node => {
+      const group = document.createElementNS(NS, 'g');
+      group.setAttribute('class', 'meta-graph-node is-' + kind);
+      group.dataset.kind = kind; group.dataset.key = node.key;
+      const rect = document.createElementNS(NS, 'rect');
+      rect.setAttribute('x', node.x); rect.setAttribute('y', node.y); rect.setAttribute('width', node.width); rect.setAttribute('height', node.height); rect.setAttribute('rx', 8);
+      if (kind === 'product') rect.setAttribute('stroke', PRODUCTOS[node.key].color);
+      const label = document.createElementNS(NS, 'text');
+      label.setAttribute('x', node.x + 10); label.setAttribute('y', node.y + 13); label.setAttribute('class', 'meta-graph-node-label');
+      const labelText = node.label.length > 35 ? node.label.slice(0, 34) + '…' : node.label;
+      label.textContent = labelText;
+      const count = document.createElementNS(NS, 'text');
+      count.setAttribute('x', node.x + node.width - 10); count.setAttribute('y', node.y + 18); count.setAttribute('text-anchor', 'end'); count.setAttribute('class', 'meta-graph-node-count'); count.textContent = node.total + ' jobs';
+      group.appendChild(rect); group.appendChild(label); group.appendChild(count);
+      group.addEventListener('mouseenter', () => highlightMetaGraph(kind, node.key, null));
+      group.addEventListener('mouseleave', () => clearMetaGraphHighlight());
+      svg.appendChild(group);
+    });
+    drawNodes(segmentNodes, 'segment'); drawNodes(metaNodes, 'meta'); drawNodes(productNodes, 'product');
+  }
+
+  function highlightMetaGraph(kind, key, target){
+    document.querySelectorAll('#metaJobsGraph .meta-graph-link').forEach(link => {
+      const match = kind === 'segment'
+        ? link.dataset.from === key
+        : kind === 'meta'
+          ? link.dataset.from === key || link.dataset.to === key
+          : link.dataset.to === key;
+      link.classList.toggle('is-dim', !match); link.classList.toggle('is-hot', match);
+    });
+    document.querySelectorAll('#metaJobsGraph .meta-graph-node').forEach(node => {
+      const match = node.dataset.kind === kind && node.dataset.key === key;
+      node.classList.toggle('is-dim', !match);
+    });
+  }
+
+  function clearMetaGraphHighlight(){
+    document.querySelectorAll('#metaJobsGraph .meta-graph-link, #metaJobsGraph .meta-graph-node').forEach(el => el.classList.remove('is-dim', 'is-hot'));
+  }
+
   function showJobsDrilldown(title, hint, casos){
     document.getElementById('jobsDrilldownTitle').textContent = title;
     document.getElementById('jobsDrilldownHint').textContent = hint;
@@ -1655,8 +2150,12 @@
       const target = btn.dataset.view;
       document.getElementById('viewRadar').hidden = target !== 'radar';
       document.getElementById('viewJobs').hidden = target !== 'jobs';
+      document.getElementById('viewSegmentJobs').hidden = target !== 'segmentJobs';
+      document.getElementById('viewMetaJobs').hidden = target !== 'metaJobs';
       document.getElementById('viewCatalog').hidden = target !== 'catalog';
       if (target === 'jobs') buildJobsView();
+      if (target === 'segmentJobs') { buildSegmentJobsFilterChips(); buildSegmentJobsView(); }
+      if (target === 'metaJobs') { buildMetaJobsFilterChips(); buildMetaJobsView(); }
       if (target === 'catalog') buildCatalogGrid();
     });
   });
@@ -1672,6 +2171,44 @@
     jobsFilters = { search: '', olas: new Set(), productos: new Set(), quadrantes: new Set() };
     document.getElementById('jobsSearch').value = '';
     buildJobsView();
+  });
+
+  let segmentJobsSearchTimer = null;
+  document.getElementById('segmentJobsSearch').addEventListener('input', (e) => {
+    const value = e.target.value;
+    clearTimeout(segmentJobsSearchTimer);
+    segmentJobsSearchTimer = setTimeout(() => {
+      segmentJobsSearch = value;
+      segmentJobsFilters.search = value;
+      buildSegmentJobsFilterChips();
+      buildSegmentJobsView();
+    }, 150);
+  });
+  document.getElementById('segmentJobsFiltersClear').addEventListener('click', () => {
+    segmentJobsSearch = '';
+    segmentJobsFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
+    document.getElementById('segmentJobsSearch').value = '';
+    buildSegmentJobsFilterChips();
+    buildSegmentJobsView();
+  });
+
+  let metaJobsSearchTimer = null;
+  document.getElementById('metaJobsSearch').addEventListener('input', (e) => {
+    const value = e.target.value;
+    clearTimeout(metaJobsSearchTimer);
+    metaJobsSearchTimer = setTimeout(() => {
+      metaJobsSearch = value;
+      metaJobsFilters.search = value;
+      buildMetaJobsFilterChips();
+      buildMetaJobsView();
+    }, 150);
+  });
+  document.getElementById('metaJobsFiltersClear').addEventListener('click', () => {
+    metaJobsSearch = '';
+    metaJobsFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
+    document.getElementById('metaJobsSearch').value = '';
+    buildMetaJobsFilterChips();
+    buildMetaJobsView();
   });
 
   let radarSearchTimer = null;
@@ -1704,6 +2241,8 @@
   wireFilterPanelToggle('radarFilterPanel', 'radarFilterToggle');
   wireFilterPanelToggle('catalogFilterPanel', 'catalogFilterToggle');
   wireFilterPanelToggle('jobsFilterPanel', 'jobsFilterToggle');
+  wireFilterPanelToggle('segmentJobsFilterPanel', 'segmentJobsFilterToggle');
+  wireFilterPanelToggle('metaJobsFilterPanel', 'metaJobsFilterToggle');
 
   let catalogSearchTimer = null;
   document.getElementById('catalogSearch').addEventListener('input', (e) => {
@@ -1777,12 +2316,20 @@
     jobsFilters = { search: '', olas: new Set(), productos: new Set(), quadrantes: new Set() };
     radarFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
     catalogFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
+    segmentJobsFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
+    segmentJobsSearch = '';
+    metaJobsFilters = { search: '', olas: new Set(), productos: new Set(), segmentos: new Set(), quadrantes: new Set() };
+    metaJobsSearch = '';
     const jobsSearchInput = document.getElementById('jobsSearch');
     if (jobsSearchInput) jobsSearchInput.value = '';
     const radarSearchInput = document.getElementById('radarSearch');
     if (radarSearchInput) radarSearchInput.value = '';
     const catalogSearchInput = document.getElementById('catalogSearch');
     if (catalogSearchInput) catalogSearchInput.value = '';
+    const segmentJobsSearchInput = document.getElementById('segmentJobsSearch');
+    if (segmentJobsSearchInput) segmentJobsSearchInput.value = '';
+    const metaJobsSearchInput = document.getElementById('metaJobsSearch');
+    if (metaJobsSearchInput) metaJobsSearchInput.value = '';
     hideSegmentPicker();
     buildSVG();
     buildRadarFilterChips();
@@ -1790,6 +2337,8 @@
     buildJobsView();
     buildCatalogFilterChips();
     buildCatalogGrid();
+    buildSegmentJobsView();
+    buildMetaJobsView();
     const when = new Date().toLocaleString('es-CO');
     let msg = totalRows + ' casos cargados desde "' + sourceLabel + '"';
     if (clusterCount) msg += ' (' + clusterCount + ' agrupados por segmento)';
