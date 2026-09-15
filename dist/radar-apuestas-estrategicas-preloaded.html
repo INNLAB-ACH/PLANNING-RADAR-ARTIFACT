@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar de Apuestas Estratégicas</title>
+<title>Radar de Apuestas Estratégicas</title>
+
+
+
 <style>
   :root{
     --bg:#F3F2FA;
@@ -686,6 +689,26 @@
   let CASOS = [];
   let CASO_BY_ID = {};
   let MEMBER_PARENT = {};
+
+  const PRODUCTOS_META = {
+    soi:            { name: 'SOI' },
+    pse:            { name: 'PSE' },
+    info:           { name: 'Soluciones de Información' },
+    transversales:  { name: 'Capacidades Transversales' },
+    transferencias: { name: 'Transferencias' },
+    nuevas:         { name: 'Nuevas Soluciones' },
+    fraude:         { name: 'Seguridad y Fraude' },
+  };
+
+  function setStatus(text, kind){
+    const el = document.getElementById('dataStatus');
+    el.textContent = text;
+    el.classList.remove('is-error', 'is-ok');
+    if (kind) el.classList.add(kind);
+  }
+
+  function stripAccents(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function normTxt(s){ return stripAccents(String(s || '').toLowerCase()); }
 
   // -------------------------------------------------------------------------
 
